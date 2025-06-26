@@ -1,0 +1,41 @@
+[
+  {
+    "id": "broker-001",
+    "name": "DataCorp Analytics",
+    "apiKey": "dc_api_key_123456789",
+    "walletAddress": "0xBrokerWallet123",
+    "isActive": true,
+    "rateLimit": {
+      "requestsPerHour": 100,
+      "currentUsage": 23,
+      "resetTime": "2024-01-21T15:00:00Z"
+    },
+    "createdAt": "2024-01-10T12:00:00Z"
+  },
+  {
+    "id": "broker-002",
+    "name": "Insight Intelligence",
+    "apiKey": "ii_api_key_987654321",
+    "walletAddress": "0xBrokerWallet789",
+    "isActive": true,
+    "rateLimit": {
+      "requestsPerHour": 50,
+      "currentUsage": 8,
+      "resetTime": "2024-01-21T16:00:00Z"
+    },
+    "createdAt": "2024-01-12T09:30:00Z"
+  },
+  {
+    "id": "broker-003",
+    "name": "Market Research Pro",
+    "apiKey": "mrp_api_key_456789123",
+    "walletAddress": "0xBrokerWallet456",
+    "isActive": false,
+    "rateLimit": {
+      "requestsPerHour": 25,
+      "currentUsage": 0,
+      "resetTime": "2024-01-21T17:00:00Z"
+    },
+    "createdAt": "2024-01-14T14:15:00Z"
+  }
+] 

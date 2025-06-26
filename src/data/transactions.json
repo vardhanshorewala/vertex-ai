@@ -1,0 +1,63 @@
+[
+  {
+    "id": "txn-001",
+    "type": "data_sale",
+    "fromWallet": "0xBrokerWallet123",
+    "toWallet": "0x1234567890123456789012345678901234567890",
+    "amount": "5.25",
+    "currency": "USDC",
+    "status": "completed",
+    "description": "Data sale: Netflix + Spotify data",
+    "metadata": {
+      "dataBrokerId": "broker-001",
+      "dataSourcesRequested": ["netflix", "spotify"]
+    },
+    "createdAt": "2024-01-20T14:00:00Z",
+    "completedAt": "2024-01-20T14:02:00Z"
+  },
+  {
+    "id": "txn-002",
+    "type": "withdrawal",
+    "fromWallet": "0x1234567890123456789012345678901234567890",
+    "toWallet": "0xExternalWallet456",
+    "amount": "3.00",
+    "currency": "USDC",
+    "status": "completed",
+    "description": "Withdrawal to external wallet",
+    "metadata": {
+      "withdrawalMethod": "wallet"
+    },
+    "createdAt": "2024-01-19T16:30:00Z",
+    "completedAt": "2024-01-19T16:35:00Z"
+  },
+  {
+    "id": "txn-003",
+    "type": "data_sale",
+    "fromWallet": "0xBrokerWallet789",
+    "toWallet": "0x2345678901234567890123456789012345678901",
+    "amount": "3.25",
+    "currency": "USDC",
+    "status": "completed",
+    "description": "Data sale: Instagram data",
+    "metadata": {
+      "dataBrokerId": "broker-002",
+      "dataSourcesRequested": ["instagram"]
+    },
+    "createdAt": "2024-01-19T10:45:00Z",
+    "completedAt": "2024-01-19T10:47:00Z"
+  },
+  {
+    "id": "txn-004",
+    "type": "withdrawal",
+    "fromWallet": "0x2345678901234567890123456789012345678901",
+    "amount": "2.50",
+    "currency": "USDC",
+    "status": "pending",
+    "description": "Withdrawal to bank account",
+    "metadata": {
+      "withdrawalMethod": "bank",
+      "bankAccountId": "bank-001"
+    },
+    "createdAt": "2024-01-21T09:15:00Z"
+  }
+] 

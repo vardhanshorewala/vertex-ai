@@ -8,6 +8,11 @@ export const env = createEnv({
    */
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]),
+    CDP_API_KEY_ID: z.string().optional(),
+    CDP_API_KEY_SECRET: z.string().optional(),
+    X402_FACILITATOR_URL: z.string().optional(),
+    OPENAI_API_KEY: z.string().optional(),
+    MARKETPLACE_SECRET_KEY: z.string().default("dev-secret-key-for-wallet-generation"),
   },
 
   /**
@@ -16,7 +21,9 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: z.string().optional(),
+    NEXT_PUBLIC_CDP_BASE_URL: z.string().default("https://api.cdp.coinbase.com"),
+    NEXT_PUBLIC_BASE_TESTNET_RPC: z.string().default("https://sepolia.base.org"),
   },
 
   /**
@@ -25,7 +32,14 @@ export const env = createEnv({
    */
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+    CDP_API_KEY_ID: process.env.CDP_API_KEY_ID,
+    CDP_API_KEY_SECRET: process.env.CDP_API_KEY_SECRET,
+    X402_FACILITATOR_URL: process.env.X402_FACILITATOR_URL,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    MARKETPLACE_SECRET_KEY: process.env.MARKETPLACE_SECRET_KEY,
+    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
+    NEXT_PUBLIC_CDP_BASE_URL: process.env.NEXT_PUBLIC_CDP_BASE_URL,
+    NEXT_PUBLIC_BASE_TESTNET_RPC: process.env.NEXT_PUBLIC_BASE_TESTNET_RPC,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
