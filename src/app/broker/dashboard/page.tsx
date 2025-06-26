@@ -20,22 +20,35 @@ import {
   Phone,
   Star,
   ShoppingCart,
-  History
+  History,
+  Wallet,
+  ExternalLink,
+  Users,
+  Mail,
+  Calendar,
+  Download,
+  FileText
 } from "lucide-react";
 import { formatCurrency, formatDate, calculateDataPrice, calculateBulkDiscount } from "~/lib/utils";
 import type { DataBroker, Transaction, DataSource } from "~/types";
 import { toast } from "~/components/ui/use-toast";
+import { Web3Provider } from "~/components/providers/web3-provider";
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { X402_PAYMENT_ADDRESS } from '~/lib/web3-config';
+import { mockUserProfiles, calculateDataValue, type MockUserProfile } from '~/lib/mock-user-data';
+import { parseEther } from 'viem';
 
-interface SearchParams {
-  fullName: string;
-  state: string;
-  phoneNumber: string;
+interface BulkDataRequest {
+  dataSources: string[];
+  quantity: number;
 }
 
-interface SearchResults {
-  profilesFound: number;
-  estimatedCost: number;
-  availableSources: DataSource[];
+interface PurchaseResult {
+  transactionHash: string;
+  dataPoints: MockUserProfile[];
+  totalCost: number;
+  purchaseId: string;
 }
 
 const mockBroker: DataBroker = {
@@ -60,84 +73,101 @@ const availableDataSources: DataSource[] = [
   { platform: "facebook", price: 2.00 }
 ];
 
-const recentTransactions: Transaction[] = [
-  {
-    id: "txn-001",
-    type: "data_sale",
-    fromWallet: "0xBrokerWallet123",
-    toWallet: "0x1234567890123456789012345678901234567890",
-    amount: "5.25",
-    currency: "USDC",
-    status: "completed",
-    description: "Data purchase: Netflix + Spotify data",
-    metadata: {
-      dataBrokerId: "broker-001",
-      dataSourcesRequested: ["netflix", "spotify"]
-    },
-    createdAt: "2024-01-20T14:00:00Z",
-    completedAt: "2024-01-20T14:02:00Z"
-  },
-  {
-    id: "txn-002",
-    type: "data_sale",
-    fromWallet: "0xBrokerWallet123",
-    toWallet: "0x2345678901234567890123456789012345678901",
-    amount: "3.25",
-    currency: "USDC",
-    status: "completed",
-    description: "Data purchase: Instagram data",
-    metadata: {
-      dataBrokerId: "broker-001",
-      dataSourcesRequested: ["instagram"]
-    },
-    createdAt: "2024-01-19T10:45:00Z",
-    completedAt: "2024-01-19T10:47:00Z"
-  }
-];
-
-export default function BrokerDashboard() {
-  const [searchParams, setSearchParams] = useState<SearchParams>({
-    fullName: "",
-    state: "",
-    phoneNumber: ""
+function BrokerDashboardContent() {
+  const { address, isConnected } = useAccount();
+  const { sendTransaction, data: txHash, isPending: isSending } = useSendTransaction();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
   });
+  
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
-  const [quantity, setQuantity] = useState(1);
-  const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [quantity, setQuantity] = useState<number>(1);
+  const [purchaseResult, setPurchaseResult] = useState<PurchaseResult | null>(null);
+  const [recentPurchases, setRecentPurchases] = useState<PurchaseResult[]>([]);
 
-  const handleSearch = async () => {
-    if (!searchParams.fullName || !searchParams.state) {
+  // Handle successful transaction
+  useEffect(() => {
+    if (isConfirmed && txHash) {
+      handleSuccessfulPurchase(txHash);
+    }
+  }, [isConfirmed, txHash]);
+
+  const calculateTotalCost = () => {
+    const baseCost = selectedSources.reduce((sum, source) => {
+      const sourceData = availableDataSources.find(s => s.platform === source);
+      return sum + (sourceData?.price || 0);
+    }, 0);
+    
+    const totalCost = baseCost * quantity;
+    
+    // Apply bulk discount for orders > 10
+    if (quantity > 10) {
+      return totalCost * 0.9; // 10% discount
+    }
+    
+    return totalCost;
+  };
+
+  const generateDataPoints = (sources: string[], count: number): MockUserProfile[] => {
+    // Filter profiles that have the requested data
+    const availableProfiles = mockUserProfiles.filter(profile => 
+      sources.some(source => {
+        const sourceKey = source.replace('-', '').toLowerCase() as keyof typeof profile.dataAvailable;
+        return profile.dataAvailable[sourceKey];
+      })
+    );
+
+    // Randomly select and duplicate profiles to reach requested quantity
+    const selectedProfiles: MockUserProfile[] = [];
+    for (let i = 0; i < count; i++) {
+      const randomProfile = availableProfiles[Math.floor(Math.random() * availableProfiles.length)];
+      if (randomProfile) {
+        // Create a copy with modified ID to simulate different data points
+        selectedProfiles.push({
+          ...randomProfile,
+          id: `${randomProfile.id}-${i}`,
+          email: `${randomProfile.email.split('@')[0]}+${i}@${randomProfile.email.split('@')[1]}`
+        });
+      }
+    }
+
+    return selectedProfiles;
+  };
+
+  const handleSuccessfulPurchase = (transactionHash: `0x${string}`) => {
+    const dataPoints = generateDataPoints(selectedSources, quantity);
+    const totalCost = calculateTotalCost();
+    
+    const result: PurchaseResult = {
+      transactionHash,
+      dataPoints,
+      totalCost,
+      purchaseId: `purchase-${Date.now()}`
+    };
+
+    setPurchaseResult(result);
+    setRecentPurchases(prev => [result, ...prev.slice(0, 4)]); // Keep last 5 purchases
+
+    toast({
+      title: "Purchase Successful!",
+      description: `Received ${dataPoints.length} data points. Transaction: ${transactionHash.slice(0, 10)}...`,
+    });
+
+    // Reset form
+    setSelectedSources([]);
+    setQuantity(1);
+  };
+
+  const handlePurchase = async () => {
+    if (!isConnected) {
       toast({
-        title: "Missing Information",
-        description: "Please provide at least a full name and state.",
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to make payments.",
         variant: "destructive"
       });
       return;
     }
 
-    setIsSearching(true);
-    
-    // Simulate API search
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const mockResults: SearchResults = {
-      profilesFound: Math.floor(Math.random() * 10) + 1,
-      estimatedCost: 0,
-      availableSources: availableDataSources
-    };
-
-    setSearchResults(mockResults);
-    setIsSearching(false);
-    
-    toast({
-      title: "Search Complete",
-      description: `Found ${mockResults.profilesFound} matching profiles.`
-    });
-  };
-
-  const handlePurchase = async () => {
     if (selectedSources.length === 0) {
       toast({
         title: "No Data Sources Selected",
@@ -147,33 +177,57 @@ export default function BrokerDashboard() {
       return;
     }
 
-    setIsPurchasing(true);
-    
-    // Simulate x402 payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsPurchasing(false);
-    
-    toast({
-      title: "Purchase Successful",
-      description: "Data has been purchased and added to your account. Consumer wallets have been credited."
-    });
+    if (quantity < 1 || quantity > 1000) {
+      toast({
+        title: "Invalid Quantity",
+        description: "Please enter a quantity between 1 and 1000.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    // Reset form
-    setSearchParams({ fullName: "", state: "", phoneNumber: "" });
-    setSelectedSources([]);
-    setSearchResults(null);
+    try {
+      const totalAmount = calculateTotalCost();
+      const amountInWei = parseEther((totalAmount * 0.001).toString());
+
+      // Send simple ETH transfer (no data since X402_PAYMENT_ADDRESS is an EOA)
+      await sendTransaction({
+        to: X402_PAYMENT_ADDRESS as `0x${string}`,
+        value: amountInWei,
+        // Note: Removed data field since we're sending to an EOA
+        // In production, this would be sent to a contract that can handle the metadata
+      });
+
+      toast({
+        title: "Transaction Sent",
+        description: "Processing payment... Please wait for confirmation.",
+      });
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Failed",
+        description: error instanceof Error ? error.message : "Transaction failed",
+        variant: "destructive"
+      });
+    }
   };
 
-  const sourcePrices = availableDataSources.reduce((acc, source) => {
-    acc[source.platform] = source.price;
-    return acc;
-  }, {} as Record<string, number>);
+  const downloadDataAsJSON = (result: PurchaseResult) => {
+    const dataBlob = new Blob([JSON.stringify(result.dataPoints, null, 2)], {
+      type: 'application/json'
+    });
+    const url = URL.createObjectURL(dataBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `data-purchase-${result.purchaseId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
-  const pricing = selectedSources.length > 0 
-    ? calculateDataPrice(sourcePrices, selectedSources, quantity)
-    : { totalPrice: 0, breakdown: {}, discount: 0 };
-
+  const totalCost = calculateTotalCost();
   const resetTime = new Date(mockBroker.rateLimit.resetTime);
   const timeUntilReset = Math.max(0, resetTime.getTime() - Date.now());
   const hoursUntilReset = Math.ceil(timeUntilReset / (1000 * 60 * 60));
@@ -182,24 +236,40 @@ export default function BrokerDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Data Broker Portal</h1>
-          <p className="text-gray-300">Purchase consumer data with x402 payments and automated distribution</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">Data Broker Portal</h1>
+            <p className="text-gray-300">Purchase bulk consumer data with x402 payments on Base Sepolia</p>
+          </div>
+          
+          {/* Wallet Connection */}
+          <div className="flex items-center space-x-4">
+            <ConnectButton />
+          </div>
         </div>
 
-        {/* Broker Status Overview */}
+        {/* Status Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-300 text-sm">API Status</p>
+                  <p className="text-gray-300 text-sm">Wallet Status</p>
                   <div className="flex items-center mt-1">
-                    <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                    <span className="text-white font-semibold">Active</span>
+                    {isConnected ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
+                        <span className="text-white font-semibold">Connected</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle className="w-4 h-4 text-yellow-400 mr-2" />
+                        <span className="text-white font-semibold">Not Connected</span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <Settings className="w-8 h-8 text-blue-400" />
+                <Wallet className="w-8 h-8 text-blue-400" />
               </div>
             </CardContent>
           </Card>
@@ -208,22 +278,27 @@ export default function BrokerDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-300 text-sm">Rate Limit</p>
-                  <p className="text-white font-semibold">{mockBroker.rateLimit.currentUsage}/{mockBroker.rateLimit.requestsPerHour}</p>
-                  <p className="text-gray-400 text-xs">Resets in {hoursUntilReset}h</p>
-                </div>
-                <Clock className="w-8 h-8 text-yellow-400" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-300 text-sm">This Month</p>
-                  <p className="text-white font-semibold">47 Requests</p>
-                  <p className="text-gray-400 text-xs">$127.50 spent</p>
+                  <p className="text-gray-300 text-sm">Transaction Status</p>
+                  <div className="flex items-center mt-1">
+                    {isSending || isConfirming ? (
+                      <>
+                        <Clock className="w-4 h-4 text-yellow-400 mr-2 animate-spin" />
+                        <span className="text-white font-semibold">
+                          {isSending ? "Sending..." : "Confirming..."}
+                        </span>
+                      </>
+                    ) : isConfirmed ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
+                        <span className="text-white font-semibold">Confirmed</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-4 h-4 text-gray-400 mr-2" />
+                        <span className="text-white font-semibold">Ready</span>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <TrendingUp className="w-8 h-8 text-green-400" />
               </div>
@@ -234,242 +309,327 @@ export default function BrokerDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-300 text-sm">Wallet Balance</p>
-                  <p className="text-white font-semibold">2,450 USDC</p>
-                  <p className="text-gray-400 text-xs">≈ $2,450.00</p>
+                  <p className="text-gray-300 text-sm">Current Order</p>
+                  <p className="text-white font-semibold">{quantity} Data Points</p>
+                  <p className="text-gray-400 text-xs">{formatCurrency(totalCost)} total</p>
                 </div>
-                <CreditCard className="w-8 h-8 text-purple-400" />
+                <ShoppingCart className="w-8 h-8 text-purple-400" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-300 text-sm">Recent Purchases</p>
+                  <p className="text-white font-semibold">{recentPurchases.length} Orders</p>
+                  <p className="text-gray-400 text-xs">This session</p>
+                </div>
+                <History className="w-8 h-8 text-green-400" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Data Search & Purchase */}
+          {/* Bulk Data Purchase */}
           <div className="lg:col-span-2">
             <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
-                  <Search className="w-5 h-5 mr-2" />
-                  Data Search & Purchase
+                  <Database className="w-5 h-5 mr-2" />
+                  Bulk Data Purchase
                 </CardTitle>
                 <CardDescription className="text-gray-300">
-                  Search for consumer profiles and purchase their data using x402 payments
+                  Select data types and quantity to purchase consumer data in bulk
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Search Form */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-white text-sm font-medium mb-2 block">Full Name *</label>
-                    <Input
-                      placeholder="e.g., John Smith"
-                      value={searchParams.fullName}
-                      onChange={(e) => setSearchParams({ ...searchParams, fullName: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                    />
+                {/* Data Source Selection */}
+                <div>
+                  <label className="text-white text-sm font-medium mb-3 block">
+                    Data Sources to Purchase
+                    {selectedSources.length === 0 && (
+                      <span className="text-yellow-400 ml-2 font-normal">← Select data sources!</span>
+                    )}
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {availableDataSources.map((source) => (
+                      <div
+                        key={source.platform}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                          selectedSources.includes(source.platform)
+                            ? 'bg-blue-500/20 border-blue-400'
+                            : 'bg-white/5 border-white/20 hover:border-white/40'
+                        }`}
+                        onClick={() => {
+                          setSelectedSources(prev =>
+                            prev.includes(source.platform)
+                              ? prev.filter(s => s !== source.platform)
+                              : [...prev, source.platform]
+                          );
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-white capitalize font-medium">
+                            {source.platform.replace('-', ' ')}
+                          </span>
+                          <span className="text-gray-300 text-sm">
+                            {formatCurrency(source.price)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <label className="text-white text-sm font-medium mb-2 block">State *</label>
+                  {selectedSources.length > 0 && (
+                    <p className="text-green-400 text-sm mt-2">
+                      ✓ {selectedSources.length} data source{selectedSources.length > 1 ? 's' : ''} selected
+                    </p>
+                  )}
+                </div>
+
+                {/* Quantity Selection */}
+                <div>
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Number of Data Points
+                    {quantity > 10 && (
+                      <span className="text-green-400 ml-2 font-normal">10% bulk discount applied!</span>
+                    )}
+                  </label>
+                  <div className="flex items-center space-x-4">
                     <Input
-                      placeholder="e.g., CA"
-                      value={searchParams.state}
-                      onChange={(e) => setSearchParams({ ...searchParams, state: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 w-32"
                     />
-                  </div>
-                  <div>
-                    <label className="text-white text-sm font-medium mb-2 block">Phone Number</label>
-                    <Input
-                      placeholder="(555) 123-4567"
-                      value={searchParams.phoneNumber}
-                      onChange={(e) => setSearchParams({ ...searchParams, phoneNumber: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                    />
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuantity(10)}
+                        className="border-white/20 text-white hover:bg-white/10"
+                      >
+                        10
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuantity(50)}
+                        className="border-white/20 text-white hover:bg-white/10"
+                      >
+                        50
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setQuantity(100)}
+                        className="border-white/20 text-white hover:bg-white/10"
+                      >
+                        100
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
-                <Button
-                  onClick={handleSearch}
-                  disabled={isSearching || !searchParams.fullName || !searchParams.state}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                >
-                  {isSearching ? "Searching..." : "Search Profiles"}
-                </Button>
-
-                {/* Search Results */}
-                {searchResults && (
-                  <div className="border-t border-white/20 pt-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-white font-semibold">Search Results</h3>
-                      <span className="text-green-400 text-sm">
-                        {searchResults.profilesFound} profiles found
-                      </span>
-                    </div>
-
-                    {/* Data Source Selection */}
-                    <div className="mb-6">
-                      <label className="text-white text-sm font-medium mb-3 block">Available Data Sources</label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {availableDataSources.map((source) => (
-                          <div
-                            key={source.platform}
-                            className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                              selectedSources.includes(source.platform)
-                                ? 'bg-blue-500/20 border-blue-400'
-                                : 'bg-white/5 border-white/20 hover:border-white/40'
-                            }`}
-                            onClick={() => {
-                              setSelectedSources(prev =>
-                                prev.includes(source.platform)
-                                  ? prev.filter(s => s !== source.platform)
-                                  : [...prev, source.platform]
-                              );
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-white capitalize font-medium">
-                                {source.platform.replace('-', ' ')}
-                              </span>
-                              <span className="text-gray-300 text-sm">
-                                +{formatCurrency(source.price)}
-                              </span>
-                            </div>
+                {/* Cost Breakdown */}
+                {selectedSources.length > 0 && (
+                  <div className="bg-white/5 rounded-lg p-4">
+                    <h4 className="text-white font-medium mb-3">Cost Breakdown</h4>
+                    <div className="space-y-2 text-sm">
+                      {selectedSources.map(source => {
+                        const sourceData = availableDataSources.find(s => s.platform === source);
+                        return (
+                          <div key={source} className="flex justify-between text-gray-300">
+                            <span>{source.replace('-', ' ')} × {quantity}</span>
+                            <span>{formatCurrency((sourceData?.price || 0) * quantity)}</span>
                           </div>
-                        ))}
+                        );
+                      })}
+                      {quantity > 10 && (
+                        <div className="flex justify-between text-green-400">
+                          <span>Bulk Discount (10%)</span>
+                          <span>-{formatCurrency(calculateTotalCost() * 0.1)}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-white/20 pt-2 flex justify-between text-white font-semibold">
+                        <span>Total</span>
+                        <span>{formatCurrency(totalCost)} (≈ {(totalCost * 0.001).toFixed(6)} ETH)</span>
                       </div>
                     </div>
-
-                    {/* Quantity and Pricing */}
-                    {selectedSources.length > 0 && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-white text-sm font-medium mb-2 block">Quantity</label>
-                          <Input
-                            type="number"
-                            min="1"
-                            max={searchResults.profilesFound}
-                            value={quantity}
-                            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                            className="bg-white/10 border-white/20 text-white w-32"
-                          />
-                        </div>
-
-                        {/* Pricing Breakdown */}
-                        <div className="bg-white/5 rounded-lg p-4">
-                          <h4 className="text-white font-medium mb-3">Pricing Breakdown</h4>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between text-gray-300">
-                              <span>Base Price (${1.50} × {quantity})</span>
-                              <span>{formatCurrency(1.50 * quantity)}</span>
-                            </div>
-                            {selectedSources.map(source => {
-                              const sourcePrice = sourcePrices[source] || 0;
-                              return (
-                                <div key={source} className="flex justify-between text-gray-300">
-                                  <span className="capitalize">{source.replace('-', ' ')} (${sourcePrice} × {quantity})</span>
-                                  <span>{formatCurrency(sourcePrice * quantity)}</span>
-                                </div>
-                              );
-                            })}
-                            {pricing.discount > 0 && (
-                              <div className="flex justify-between text-green-400">
-                                <span>Bulk Discount ({(pricing.discount * 100).toFixed(0)}%)</span>
-                                <span>-{formatCurrency((1 - (1 - pricing.discount)) * (pricing.totalPrice / (1 - pricing.discount)))}</span>
-                              </div>
-                            )}
-                            <div className="border-t border-white/20 pt-2 flex justify-between text-white font-semibold">
-                              <span>Total</span>
-                              <span>{formatCurrency(pricing.totalPrice)}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Button
-                          onClick={handlePurchase}
-                          disabled={isPurchasing}
-                          className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700"
-                        >
-                          {isPurchasing ? "Processing Payment..." : `Purchase Data for ${formatCurrency(pricing.totalPrice)}`}
-                        </Button>
-                      </div>
-                    )}
                   </div>
+                )}
+
+                <Button
+                  onClick={handlePurchase}
+                  disabled={isSending || isConfirming || !isConnected || selectedSources.length === 0}
+                  className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:opacity-50"
+                >
+                  {isSending ? "Sending Transaction..." : 
+                   isConfirming ? "Confirming Payment..." : 
+                   `Purchase ${quantity} Data Points for ${formatCurrency(totalCost)}`}
+                </Button>
+                
+                {!isConnected && (
+                  <p className="text-yellow-400 text-sm text-center">
+                    Connect your wallet to make purchases
+                  </p>
                 )}
               </CardContent>
             </Card>
+
+            {/* Purchase Results */}
+            {purchaseResult && (
+              <Card className="bg-white/10 border-white/20 backdrop-blur-sm mt-6">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <CheckCircle className="w-5 h-5 mr-2 text-green-400" />
+                    Purchase Complete
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <label className="text-gray-300">Transaction Hash</label>
+                      <p className="text-white font-mono text-xs">{purchaseResult.transactionHash}</p>
+                    </div>
+                    <div>
+                      <label className="text-gray-300">Data Points Received</label>
+                      <p className="text-white font-semibold">{purchaseResult.dataPoints.length}</p>
+                    </div>
+                    <div>
+                      <label className="text-gray-300">Total Cost</label>
+                      <p className="text-white font-semibold">{formatCurrency(purchaseResult.totalCost)}</p>
+                    </div>
+                    <div>
+                      <label className="text-gray-300">Purchase ID</label>
+                      <p className="text-white font-mono text-xs">{purchaseResult.purchaseId}</p>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    onClick={() => downloadDataAsJSON(purchaseResult)}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Data as JSON
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* API Information */}
+            {/* How to Buy Instructions */}
+            <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  How to Buy Data
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2 text-sm text-gray-300">
+                  <div className="flex items-start space-x-2">
+                    <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">1</span>
+                    <span>Select data sources you want</span>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">2</span>
+                    <span>Choose quantity (10+ gets discount)</span>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">3</span>
+                    <span>Click purchase and confirm in wallet</span>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">4</span>
+                    <span>Download JSON data after confirmation</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Purchases */}
+            {recentPurchases.length > 0 && (
+              <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <History className="w-5 h-5 mr-2" />
+                    Recent Purchases
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {recentPurchases.slice(0, 3).map((purchase) => (
+                    <div key={purchase.purchaseId} className="bg-white/5 rounded p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-white text-sm font-medium">
+                          {purchase.dataPoints.length} points
+                        </span>
+                        <span className="text-gray-300 text-xs">
+                          {formatCurrency(purchase.totalCost)}
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadDataAsJSON(purchase)}
+                        className="w-full text-xs border-white/20 text-white hover:bg-white/10"
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        Download JSON
+                      </Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* x402 Information */}
             <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <Key className="w-5 h-5 mr-2" />
-                  API Information
+                  x402 Payment Info
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-gray-300 text-sm">API Key</label>
+                  <label className="text-gray-300 text-sm">Payment Address</label>
                   <div className="bg-white/5 rounded p-2 mt-1">
-                    <code className="text-gray-300 text-xs font-mono">
-                      {mockBroker.apiKey.substring(0, 20)}...
+                    <code className="text-gray-300 text-xs font-mono break-all">
+                      {X402_PAYMENT_ADDRESS}
                     </code>
                   </div>
                 </div>
                 <div>
-                  <label className="text-gray-300 text-sm">Wallet Address</label>
+                  <label className="text-gray-300 text-sm">Network</label>
                   <div className="bg-white/5 rounded p-2 mt-1">
-                    <code className="text-gray-300 text-xs font-mono">
-                      {mockBroker.walletAddress.substring(0, 20)}...
-                    </code>
+                    <span className="text-gray-300 text-sm">Base Sepolia Testnet</span>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" className="w-full border-white/20 text-white hover:bg-white/10">
-                  View Documentation
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Recent Transactions */}
-            <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <History className="w-5 h-5 mr-2" />
-                  Recent Transactions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {recentTransactions.map((transaction) => (
-                  <div key={transaction.id} className="border-b border-white/10 pb-3 last:border-b-0">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-white text-sm font-medium">
-                          {formatCurrency(transaction.amount, transaction.currency)}
-                        </p>
-                        <p className="text-gray-400 text-xs">
-                          {transaction.metadata?.dataSourcesRequested?.join(' + ') || 'N/A'}
-                        </p>
-                        <p className="text-gray-500 text-xs">
-                          {formatDate(transaction.createdAt)}
-                        </p>
-                      </div>
-                      <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
-                        {transaction.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" className="w-full border-white/20 text-white hover:bg-white/10">
-                  View All Transactions
-                </Button>
+                <div className="space-y-2 text-sm text-gray-300">
+                  <p>• Payments processed via x402 protocol</p>
+                  <p>• Automatic fund distribution to consumers</p>
+                  <p>• Instant data access upon confirmation</p>
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BrokerDashboard() {
+  return (
+    <Web3Provider>
+      <BrokerDashboardContent />
+    </Web3Provider>
   );
 } 
