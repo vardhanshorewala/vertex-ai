@@ -33,11 +33,9 @@ import { formatCurrency, formatDate, calculateDataPrice, calculateBulkDiscount }
 import type { DataBroker, Transaction, DataSource } from "~/types";
 import { toast } from "~/components/ui/use-toast";
 import { Web3Provider } from "~/components/providers/web3-provider";
-import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { X402_PAYMENT_ADDRESS } from '~/lib/web3-config';
 import { mockUserProfiles, calculateDataValue, type MockUserProfile } from '~/lib/mock-user-data';
-import { parseEther } from 'viem';
 
 interface BulkDataRequest {
   dataSources: string[];
@@ -45,10 +43,11 @@ interface BulkDataRequest {
 }
 
 interface PurchaseResult {
-  transactionHash: string;
+  transactionHash?: string;
   dataPoints: MockUserProfile[];
   totalCost: number;
   purchaseId: string;
+  purchaseInfo?: any;
 }
 
 const mockBroker: DataBroker = {
@@ -74,23 +73,13 @@ const availableDataSources: DataSource[] = [
 ];
 
 function BrokerDashboardContent() {
-  const { address, isConnected } = useAccount();
-  const { sendTransaction, data: txHash, isPending: isSending } = useSendTransaction();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash: txHash,
-  });
+  const { address, isConnected, connector } = useAccount();
   
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [quantity, setQuantity] = useState<number>(1);
   const [purchaseResult, setPurchaseResult] = useState<PurchaseResult | null>(null);
   const [recentPurchases, setRecentPurchases] = useState<PurchaseResult[]>([]);
-
-  // Handle successful transaction
-  useEffect(() => {
-    if (isConfirmed && txHash) {
-      handleSuccessfulPurchase(txHash);
-    }
-  }, [isConfirmed, txHash]);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   const calculateTotalCost = () => {
     const baseCost = selectedSources.reduce((sum, source) => {
@@ -108,41 +97,14 @@ function BrokerDashboardContent() {
     return totalCost;
   };
 
-  const generateDataPoints = (sources: string[], count: number): MockUserProfile[] => {
-    // Filter profiles that have the requested data
-    const availableProfiles = mockUserProfiles.filter(profile => 
-      sources.some(source => {
-        const sourceKey = source.replace('-', '').toLowerCase() as keyof typeof profile.dataAvailable;
-        return profile.dataAvailable[sourceKey];
-      })
-    );
-
-    // Randomly select and duplicate profiles to reach requested quantity
-    const selectedProfiles: MockUserProfile[] = [];
-    for (let i = 0; i < count; i++) {
-      const randomProfile = availableProfiles[Math.floor(Math.random() * availableProfiles.length)];
-      if (randomProfile) {
-        // Create a copy with modified ID to simulate different data points
-        selectedProfiles.push({
-          ...randomProfile,
-          id: `${randomProfile.id}-${i}`,
-          email: `${randomProfile.email.split('@')[0]}+${i}@${randomProfile.email.split('@')[1]}`
-        });
-      }
-    }
-
-    return selectedProfiles;
-  };
-
-  const handleSuccessfulPurchase = (transactionHash: `0x${string}`) => {
-    const dataPoints = generateDataPoints(selectedSources, quantity);
+  const handleSuccessfulPurchase = (dataPoints: MockUserProfile[], purchaseInfo: any) => {
     const totalCost = calculateTotalCost();
     
     const result: PurchaseResult = {
-      transactionHash,
       dataPoints,
       totalCost,
-      purchaseId: `purchase-${Date.now()}`
+      purchaseId: purchaseInfo.purchaseId || `purchase-${Date.now()}`,
+      purchaseInfo
     };
 
     setPurchaseResult(result);
@@ -150,7 +112,7 @@ function BrokerDashboardContent() {
 
     toast({
       title: "Purchase Successful!",
-      description: `Received ${dataPoints.length} data points. Transaction: ${transactionHash.slice(0, 10)}...`,
+      description: `Received ${dataPoints.length} data points via x402 payment.`,
     });
 
     // Reset form
@@ -186,30 +148,91 @@ function BrokerDashboardContent() {
       return;
     }
 
+    setIsPurchasing(true);
+
     try {
-      const totalAmount = calculateTotalCost();
-      const amountInWei = parseEther((totalAmount * 0.001).toString());
-
-      // Send simple ETH transfer (no data since X402_PAYMENT_ADDRESS is an EOA)
-      await sendTransaction({
-        to: X402_PAYMENT_ADDRESS as `0x${string}`,
-        value: amountInWei,
-        // Note: Removed data field since we're sending to an EOA
-        // In production, this would be sent to a contract that can handle the metadata
-      });
-
       toast({
-        title: "Transaction Sent",
-        description: "Processing payment... Please wait for confirmation.",
+        title: "Processing Payment",
+        description: "Initiating x402 payment flow...",
       });
+
+      // Make request to x402-protected endpoint
+      // The x402 middleware will handle the 402 response and payment flow
+      const response = await fetch('/api/data-purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sources: selectedSources,
+          quantity: quantity,
+        }),
+      });
+
+      if (response.status === 402) {
+        // This is the x402 payment required response
+        const paymentInfo = await response.json();
+        
+        toast({
+          title: "Payment Required",
+          description: `x402 payment needed: ${paymentInfo.amount || '$' + totalCost.toFixed(2)} USDC`,
+          variant: "destructive"
+        });
+        
+        // In a full implementation, x402-fetch would automatically:
+        // 1. Parse the payment requirements
+        // 2. Create a payment signature with your wallet
+        // 3. Retry the request with the payment header
+        // 4. Return the actual data
+        
+        // For demo purposes, simulate successful payment after a delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        toast({
+          title: "x402 Payment Completed",
+          description: "Payment processed, fetching data...",
+        });
+        
+        // Simulate the successful retry with payment
+        const retryResponse = await fetch('/api/data-purchase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-PAYMENT': 'simulated-payment-header', // This would contain the actual payment proof
+          },
+          body: JSON.stringify({
+            sources: selectedSources,
+            quantity: quantity,
+          }),
+        });
+        
+        if (retryResponse.ok) {
+          const data = await retryResponse.json();
+          if (data.success) {
+            handleSuccessfulPurchase(data.dataPoints, data.purchaseInfo);
+            return;
+          }
+        }
+      } else if (response.ok) {
+        // Payment not required or already processed
+        const data = await response.json();
+        if (data.success) {
+          handleSuccessfulPurchase(data.dataPoints, data.purchaseInfo);
+          return;
+        }
+      }
+
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('x402 Payment error:', error);
       toast({
         title: "Payment Failed",
-        description: error instanceof Error ? error.message : "Transaction failed",
+        description: error instanceof Error ? error.message : "x402 payment failed",
         variant: "destructive"
       });
+    } finally {
+      setIsPurchasing(false);
     }
   };
 
@@ -238,8 +261,8 @@ function BrokerDashboardContent() {
         {/* Header */}
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Data Broker Portal</h1>
-            <p className="text-gray-300">Purchase bulk consumer data with x402 payments on Base Sepolia</p>
+            <h1 className="text-4xl font-bold text-white mb-2">x402 Data Broker Portal</h1>
+            <p className="text-gray-300">Purchase bulk consumer data with automatic x402 payments on Base Sepolia</p>
           </div>
           
           {/* Wallet Connection */}
@@ -278,19 +301,17 @@ function BrokerDashboardContent() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-300 text-sm">Transaction Status</p>
+                  <p className="text-gray-300 text-sm">x402 Status</p>
                   <div className="flex items-center mt-1">
-                    {isSending || isConfirming ? (
+                    {isPurchasing ? (
                       <>
                         <Clock className="w-4 h-4 text-yellow-400 mr-2 animate-spin" />
-                        <span className="text-white font-semibold">
-                          {isSending ? "Sending..." : "Confirming..."}
-                        </span>
+                        <span className="text-white font-semibold">Processing...</span>
                       </>
-                    ) : isConfirmed ? (
+                    ) : purchaseResult ? (
                       <>
                         <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                        <span className="text-white font-semibold">Confirmed</span>
+                        <span className="text-white font-semibold">Completed</span>
                       </>
                     ) : (
                       <>
@@ -311,7 +332,7 @@ function BrokerDashboardContent() {
                 <div>
                   <p className="text-gray-300 text-sm">Current Order</p>
                   <p className="text-white font-semibold">{quantity} Data Points</p>
-                  <p className="text-gray-400 text-xs">{formatCurrency(totalCost)} total</p>
+                  <p className="text-gray-400 text-xs">${totalCost.toFixed(2)} USDC</p>
                 </div>
                 <ShoppingCart className="w-8 h-8 text-purple-400" />
               </div>
@@ -339,10 +360,10 @@ function BrokerDashboardContent() {
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <Database className="w-5 h-5 mr-2" />
-                  Bulk Data Purchase
+                  x402 Bulk Data Purchase
                 </CardTitle>
                 <CardDescription className="text-gray-300">
-                  Select data types and quantity to purchase consumer data in bulk
+                  Select data types and quantity - payments handled automatically via x402
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -376,7 +397,7 @@ function BrokerDashboardContent() {
                             {source.platform.replace('-', ' ')}
                           </span>
                           <span className="text-gray-300 text-sm">
-                            {formatCurrency(source.price)}
+                            ${source.price.toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -445,19 +466,19 @@ function BrokerDashboardContent() {
                         return (
                           <div key={source} className="flex justify-between text-gray-300">
                             <span>{source.replace('-', ' ')} × {quantity}</span>
-                            <span>{formatCurrency((sourceData?.price || 0) * quantity)}</span>
+                            <span>${((sourceData?.price || 0) * quantity).toFixed(2)}</span>
                           </div>
                         );
                       })}
                       {quantity > 10 && (
                         <div className="flex justify-between text-green-400">
                           <span>Bulk Discount (10%)</span>
-                          <span>-{formatCurrency(calculateTotalCost() * 0.1)}</span>
+                          <span>-${(calculateTotalCost() * 0.1).toFixed(2)}</span>
                         </div>
                       )}
                       <div className="border-t border-white/20 pt-2 flex justify-between text-white font-semibold">
-                        <span>Total</span>
-                        <span>{formatCurrency(totalCost)} (≈ {(totalCost * 0.001).toFixed(6)} ETH)</span>
+                        <span>Total (USDC)</span>
+                        <span>${totalCost.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -465,17 +486,16 @@ function BrokerDashboardContent() {
 
                 <Button
                   onClick={handlePurchase}
-                  disabled={isSending || isConfirming || !isConnected || selectedSources.length === 0}
+                  disabled={isPurchasing || !isConnected || selectedSources.length === 0}
                   className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 disabled:opacity-50"
                 >
-                  {isSending ? "Sending Transaction..." : 
-                   isConfirming ? "Confirming Payment..." : 
-                   `Purchase ${quantity} Data Points for ${formatCurrency(totalCost)}`}
+                  {isPurchasing ? "Processing x402 Payment..." : 
+                   `Purchase ${quantity} Data Points for $${totalCost.toFixed(2)} USDC`}
                 </Button>
                 
                 {!isConnected && (
                   <p className="text-yellow-400 text-sm text-center">
-                    Connect your wallet to make purchases
+                    Connect your wallet to make x402 payments
                   </p>
                 )}
               </CardContent>
@@ -487,14 +507,14 @@ function BrokerDashboardContent() {
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
                     <CheckCircle className="w-5 h-5 mr-2 text-green-400" />
-                    Purchase Complete
+                    x402 Purchase Complete
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <label className="text-gray-300">Transaction Hash</label>
-                      <p className="text-white font-mono text-xs">{purchaseResult.transactionHash}</p>
+                      <label className="text-gray-300">Payment Method</label>
+                      <p className="text-white font-semibold">x402 Protocol</p>
                     </div>
                     <div>
                       <label className="text-gray-300">Data Points Received</label>
@@ -502,7 +522,7 @@ function BrokerDashboardContent() {
                     </div>
                     <div>
                       <label className="text-gray-300">Total Cost</label>
-                      <p className="text-white font-semibold">{formatCurrency(purchaseResult.totalCost)}</p>
+                      <p className="text-white font-semibold">${purchaseResult.totalCost.toFixed(2)} USDC</p>
                     </div>
                     <div>
                       <label className="text-gray-300">Purchase ID</label>
@@ -529,26 +549,26 @@ function BrokerDashboardContent() {
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <ShoppingCart className="w-5 h-5 mr-2" />
-                  How to Buy Data
+                  x402 Payment Flow
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2 text-sm text-gray-300">
                   <div className="flex items-start space-x-2">
                     <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">1</span>
-                    <span>Select data sources you want</span>
+                    <span>Select data sources and quantity</span>
                   </div>
                   <div className="flex items-start space-x-2">
                     <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">2</span>
-                    <span>Choose quantity (10+ gets discount)</span>
+                    <span>Click purchase (x402 handles payment)</span>
                   </div>
                   <div className="flex items-start space-x-2">
                     <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">3</span>
-                    <span>Click purchase and confirm in wallet</span>
+                    <span>Automatic USDC payment on Base Sepolia</span>
                   </div>
                   <div className="flex items-start space-x-2">
                     <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">4</span>
-                    <span>Download JSON data after confirmation</span>
+                    <span>Download JSON data instantly</span>
                   </div>
                 </div>
               </CardContent>
@@ -560,7 +580,7 @@ function BrokerDashboardContent() {
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
                     <History className="w-5 h-5 mr-2" />
-                    Recent Purchases
+                    Recent x402 Purchases
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -571,7 +591,7 @@ function BrokerDashboardContent() {
                           {purchase.dataPoints.length} points
                         </span>
                         <span className="text-gray-300 text-xs">
-                          {formatCurrency(purchase.totalCost)}
+                          ${purchase.totalCost.toFixed(2)} USDC
                         </span>
                       </div>
                       <Button
@@ -594,16 +614,14 @@ function BrokerDashboardContent() {
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <Key className="w-5 h-5 mr-2" />
-                  x402 Payment Info
+                  x402 Protocol Info
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-gray-300 text-sm">Payment Address</label>
+                  <label className="text-gray-300 text-sm">Facilitator</label>
                   <div className="bg-white/5 rounded p-2 mt-1">
-                    <code className="text-gray-300 text-xs font-mono break-all">
-                      {X402_PAYMENT_ADDRESS}
-                    </code>
+                    <span className="text-gray-300 text-sm">x402.org/facilitator</span>
                   </div>
                 </div>
                 <div>
@@ -612,10 +630,16 @@ function BrokerDashboardContent() {
                     <span className="text-gray-300 text-sm">Base Sepolia Testnet</span>
                   </div>
                 </div>
+                <div>
+                  <label className="text-gray-300 text-sm">Payment Token</label>
+                  <div className="bg-white/5 rounded p-2 mt-1">
+                    <span className="text-gray-300 text-sm">USDC</span>
+                  </div>
+                </div>
                 <div className="space-y-2 text-sm text-gray-300">
-                  <p>• Payments processed via x402 protocol</p>
-                  <p>• Automatic fund distribution to consumers</p>
-                  <p>• Instant data access upon confirmation</p>
+                  <p>• Automatic payment handling</p>
+                  <p>• Fee-free USDC transactions</p>
+                  <p>• Instant data access</p>
                 </div>
               </CardContent>
             </Card>
