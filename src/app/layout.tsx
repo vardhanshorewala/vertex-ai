@@ -3,6 +3,7 @@ import "~/styles/globals.css";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ToastProvider, ToastViewport } from "~/components/ui/toast";
+import { AuthProvider } from "~/components/providers/session-provider";
 
 export const metadata: Metadata = {
   title: "Data Marketplace | Consumer Data Platform",
@@ -21,10 +22,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} dark`}>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <ToastProvider swipeDirection="right">
-          {children}
-          <ToastViewport />
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider swipeDirection="right">
+            {children}
+            <ToastViewport />
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

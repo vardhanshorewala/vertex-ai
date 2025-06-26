@@ -13,6 +13,10 @@ export const env = createEnv({
     X402_FACILITATOR_URL: z.string().optional(),
     OPENAI_API_KEY: z.string().optional(),
     MARKETPLACE_SECRET_KEY: z.string().default("dev-secret-key-for-wallet-generation"),
+    NEXTAUTH_SECRET: z.string().min(1).default("dev-secret-for-nextauth"),
+    NEXTAUTH_URL: z.string().url().optional(),
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
   },
 
   /**
@@ -37,6 +41,10 @@ export const env = createEnv({
     X402_FACILITATOR_URL: process.env.X402_FACILITATOR_URL,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     MARKETPLACE_SECRET_KEY: process.env.MARKETPLACE_SECRET_KEY,
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
     NEXT_PUBLIC_CDP_BASE_URL: process.env.NEXT_PUBLIC_CDP_BASE_URL,
     NEXT_PUBLIC_BASE_TESTNET_RPC: process.env.NEXT_PUBLIC_BASE_TESTNET_RPC,

@@ -13,6 +13,16 @@
 /prisma/db.sqlite-journal
 db.sqlite
 
+# user data and JSON files
+/src/data/
+src/data/*.json
+users.json
+wallets.json
+consumers.json
+brokers.json
+transactions.json
+wallet-mapping.json
+
 # next.js
 /.next/
 /out/
