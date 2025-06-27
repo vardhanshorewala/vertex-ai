@@ -67,7 +67,11 @@ export default function HomePage() {
                 </div>
               ) : (
                 <div className="flex items-center space-x-3">
-                  <Button onClick={() => signIn("google")} size="sm">
+                  <Button
+                    onClick={() => signIn("google")}
+                    size="sm"
+                    className="cursor-pointer"
+                  >
                     <LogIn className="mr-2 h-4 w-4" />
                     Sign In
                   </Button>

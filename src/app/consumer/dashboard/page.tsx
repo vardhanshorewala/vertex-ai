@@ -79,6 +79,7 @@ export default function ConsumerDashboard() {
       }
 
       // Mock linked accounts for now
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
       const mockLinkedAccounts: LinkedAccount[] = [
         {
           id: "netflix-user",
@@ -86,7 +87,7 @@ export default function ConsumerDashboard() {
           accountId: "user.netflix.001",
           linkedAt: "2024-01-15T10:30:00Z",
           dataAvailable: true,
-          lastSync: "2024-01-20T15:00:00Z",
+          lastSync: twoMinutesAgo,
         },
         {
           id: "spotify-user",
@@ -94,12 +95,12 @@ export default function ConsumerDashboard() {
           accountId: "user.spotify.001",
           linkedAt: "2024-01-16T14:00:00Z",
           dataAvailable: true,
-          lastSync: "2024-01-20T14:30:00Z",
+          lastSync: twoMinutesAgo,
         },
       ];
 
       setLinkedAccounts(mockLinkedAccounts);
-      setTotalEarnings(25.75);
+      // setTotalEarnings(25.75);
     } catch (error) {
       console.error("Error loading user data:", error);
       toast({
@@ -334,19 +335,29 @@ export default function ConsumerDashboard() {
                         </div>
                       </div>
                       {platform.connected ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            const account = linkedAccounts.find(
-                              (acc) => acc.platform === platform.id,
-                            );
-                            if (account) handleDataSync(account.id);
-                          }}
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Sync
-                        </Button>
+                        <div className="flex items-center space-x-2">
+                          <div className="group relative">
+                            <div className="flex items-center space-x-2">
+                              <div className="relative">
+                                <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                                <div className="absolute inset-0 h-2 w-2 animate-ping rounded-full bg-green-500 opacity-75"></div>
+                              </div>
+                              <span className="text-sm font-medium text-green-600">
+                                Synced
+                              </span>
+                            </div>
+                            {/* Tooltip */}
+                            <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform rounded-lg bg-gray-900 px-3 py-2 text-xs whitespace-nowrap text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                              Last synced:{" "}
+                              {formatDate(
+                                linkedAccounts.find(
+                                  (acc) => acc.platform === platform.id,
+                                )?.lastSync || new Date().toISOString(),
+                              )}
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 transform border-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                          </div>
+                        </div>
                       ) : (
                         <Button
                           size="sm"
