@@ -442,9 +442,14 @@ export default function DemoSearch() {
                       <div className="text-lg font-bold">
                         Total: {formatCurrency(8.5)}
                       </div>
-                      <Button onClick={handlePurchaseData} variant="success">
-                        Purchase Data
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button onClick={handlePurchaseData} variant="success">
+                          Purchase Data
+                        </Button>
+                        <Button asChild variant="outline">
+                          <Link href="/demo/data-use">Demo Data Use</Link>
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

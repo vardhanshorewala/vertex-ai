@@ -12,11 +12,14 @@ export const env = createEnv({
     CDP_API_KEY_SECRET: z.string().optional(),
     X402_FACILITATOR_URL: z.string().optional(),
     OPENAI_API_KEY: z.string().optional(),
-    MARKETPLACE_SECRET_KEY: z.string().default("dev-secret-key-for-wallet-generation"),
+    MARKETPLACE_SECRET_KEY: z
+      .string()
+      .default("dev-secret-key-for-wallet-generation"),
     NEXTAUTH_SECRET: z.string().min(1).default("dev-secret-for-nextauth"),
     NEXTAUTH_URL: z.string().url().optional(),
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
+    OPENAI_BASE_URL: z.string().optional(),
   },
 
   /**
@@ -26,8 +29,12 @@ export const env = createEnv({
    */
   client: {
     NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: z.string().optional(),
-    NEXT_PUBLIC_CDP_BASE_URL: z.string().default("https://api.cdp.coinbase.com"),
-    NEXT_PUBLIC_BASE_TESTNET_RPC: z.string().default("https://sepolia.base.org"),
+    NEXT_PUBLIC_CDP_BASE_URL: z
+      .string()
+      .default("https://api.cdp.coinbase.com"),
+    NEXT_PUBLIC_BASE_TESTNET_RPC: z
+      .string()
+      .default("https://sepolia.base.org"),
   },
 
   /**
@@ -45,9 +52,11 @@ export const env = createEnv({
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
+    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID:
+      process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
     NEXT_PUBLIC_CDP_BASE_URL: process.env.NEXT_PUBLIC_CDP_BASE_URL,
     NEXT_PUBLIC_BASE_TESTNET_RPC: process.env.NEXT_PUBLIC_BASE_TESTNET_RPC,
+    OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
