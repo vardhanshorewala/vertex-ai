@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: data-marketplace
+    runtime: docker
+    plan: starter
+    repo: https://github.com/vardhanshorewala/vertex-ai
+    branch: main
+    dockerfilePath: ./Dockerfile
+    
+    # Build configuration
+    buildCommand: npm ci
+    startCommand: npm run dev
+  
+    
+    # Auto-deploy configuration
+    autoDeploy: true
+    
+    # Disk storage (if needed for uploads)
+    disk:
+      name: data-storage
+      mountPath: /app/uploads
+      sizeGB: 1
