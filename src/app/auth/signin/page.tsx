@@ -1,10 +1,16 @@
 "use client";
 
-import { signIn, getProviders } from "next-auth/react";
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import { signIn } from "next-auth/react";
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { ArrowLeft, LogIn } from "lucide-react";
+import { ArrowLeft, CheckCircle, Loader2, Globe } from "lucide-react";
 import Link from "next/link";
 
 export default function SignIn() {
@@ -13,85 +19,106 @@ export default function SignIn() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      await signIn('google', { callbackUrl: '/consumer/dashboard' });
+      await signIn("google", { callbackUrl: "/consumer/dashboard" });
     } catch (error) {
-      console.error('Sign in error:', error);
-    } finally {
+      console.error("Sign in error:", error);
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 p-6">
-      <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link href="/" className="inline-flex items-center text-gray-300 hover:text-white mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Home
-          </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">Sign In</h1>
-          <p className="text-gray-300">Access your data marketplace account</p>
-        </div>
-
-        {/* Sign In Card */}
-        <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <LogIn className="w-6 h-6 mr-3" />
-              Welcome Back
-            </CardTitle>
-            <CardDescription className="text-gray-300">
-              Sign in with your Google account to access your dashboard and manage your data earnings.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Features */}
-            <div className="space-y-3">
-              <div className="flex items-center text-sm text-gray-300">
-                <span className="w-2 h-2 bg-green-400 rounded-full mr-3"></span>
-                Secure OAuth authentication
+    <div className="bg-surface min-h-screen">
+      <header className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 border-b backdrop-blur">
+        <div className="container">
+          <div className="flex h-16 items-center justify-between">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
+                <Globe className="text-primary-foreground h-5 w-5" />
               </div>
-              <div className="flex items-center text-sm text-gray-300">
-                <span className="w-2 h-2 bg-green-400 rounded-full mr-3"></span>
-                Your data, your control
-              </div>
-              <div className="flex items-center text-sm text-gray-300">
-                <span className="w-2 h-2 bg-green-400 rounded-full mr-3"></span>
-                One wallet per account
-              </div>
-            </div>
-
-            {/* Google Sign In Button */}
-            <Button
-              onClick={handleGoogleSignIn}
-              disabled={isLoading}
-              className="w-full bg-white hover:bg-gray-100 text-gray-900 font-semibold py-3 flex items-center justify-center"
-            >
-              {isLoading ? (
-                "Signing in..."
-              ) : (
-                <>
-                  <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Continue with Google
-                </>
-              )}
+              <h1 className="text-foreground text-xl font-bold">DataMarket</h1>
+            </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Home
+              </Link>
             </Button>
+          </div>
+        </div>
+      </header>
 
-            {/* Privacy Notice */}
-            <div className="text-center">
-              <p className="text-gray-400 text-xs">
-                By signing in, you agree to our privacy practices and data handling policies.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <main className="section-padding flex items-center justify-center">
+        <div className="container max-w-md">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">Welcome Back</CardTitle>
+              <CardDescription>
+                Sign in with your Google account to access your dashboard and
+                manage your data earnings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-secondary space-y-3 rounded-lg p-4">
+                <div className="flex items-center text-sm">
+                  <CheckCircle className="text-success mr-3 h-4 w-4 flex-shrink-0" />
+                  <span>Secure OAuth 2.0 authentication</span>
+                </div>
+                <div className="flex items-center text-sm">
+                  <CheckCircle className="text-success mr-3 h-4 w-4 flex-shrink-0" />
+                  <span>You own and control your data</span>
+                </div>
+                <div className="flex items-center text-sm">
+                  <CheckCircle className="text-success mr-3 h-4 w-4 flex-shrink-0" />
+                  <span>One secure custodial wallet per account</span>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
+                className="w-full"
+                size="lg"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <svg className="mr-3 h-5 w-5" viewBox="0 0 48 48">
+                      <path
+                        fill="#FFC107"
+                        d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"
+                      ></path>
+                      <path
+                        fill="#FF3D00"
+                        d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"
+                      ></path>
+                      <path
+                        fill="#4CAF50"
+                        d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"
+                      ></path>
+                      <path
+                        fill="#1976D2"
+                        d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571l6.19,5.238C39.99,35.531,44,29.891,44,24C44,22.659,43.862,21.35,43.611,20.083z"
+                      ></path>
+                    </svg>
+                    Continue with Google
+                  </>
+                )}
+              </Button>
+
+              <div className="text-center">
+                <p className="text-muted-foreground text-xs">
+                  By signing in, you agree to our privacy practices and data
+                  handling policies.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     </div>
   );
-} 
+}

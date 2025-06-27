@@ -3,13 +3,18 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { 
-  Wallet, 
-  Copy, 
-  Eye, 
+import {
+  Wallet,
+  Copy,
+  Eye,
   EyeOff,
   CheckCircle,
   AlertTriangle,
@@ -17,7 +22,9 @@ import {
   ArrowLeft,
   Shield,
   Key,
-  ExternalLink
+  ExternalLink,
+  Loader2,
+  Globe,
 } from "lucide-react";
 import { formatAddress } from "~/lib/utils";
 import { toast } from "~/components/ui/use-toast";
@@ -42,20 +49,24 @@ interface WalletCreationResult {
   };
 }
 
-export default function CreateWallet() {
+function PageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
-  const [walletResult, setWalletResult] = useState<WalletCreationResult | null>(null);
+  const [walletResult, setWalletResult] = useState<WalletCreationResult | null>(
+    null,
+  );
   const [showSeedPhrase, setShowSeedPhrase] = useState(false);
   const [seedPhraseCopied, setSeedPhraseCopied] = useState(false);
   const [addressCopied, setAddressCopied] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'create' | 'backup' | 'complete'>('create');
+  const [currentStep, setCurrentStep] = useState<
+    "create" | "backup" | "complete"
+  >("create");
   const [isFunding, setIsFunding] = useState(false);
 
   useEffect(() => {
     if (status === "loading") return;
-    
+
     if (status === "unauthenticated") {
       router.push("/auth/signin");
       return;
@@ -67,72 +78,66 @@ export default function CreateWallet() {
       toast({
         title: "Authentication Required",
         description: "Please sign in to create a wallet.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     setIsCreating(true);
-    
+
     try {
-      const response = await fetch('/api/wallet/create', {
-        method: 'POST',
+      const response = await fetch("/api/wallet/create", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          networkId: 'base-sepolia'
+          networkId: "base-sepolia",
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create wallet');
+        throw new Error(data.error || "Failed to create wallet");
       }
 
       setWalletResult(data);
-      setCurrentStep('backup');
-      
+      setCurrentStep("backup");
+
       toast({
         title: "Wallet Created Successfully!",
-        description: "Your CDP wallet has been created on Base Sepolia testnet."
+        description:
+          "Your CDP wallet has been created on Base Sepolia testnet.",
+        variant: "default",
       });
-
     } catch (error) {
-      console.error('Error creating wallet:', error);
+      console.error("Error creating wallet:", error);
       toast({
         title: "Failed to Create Wallet",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive"
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
       });
     } finally {
       setIsCreating(false);
     }
   };
 
-  const handleCopySeedPhrase = async () => {
-    if (walletResult?.seedPhrase) {
-      await navigator.clipboard.writeText(walletResult.seedPhrase);
+  const handleCopy = async (text: string, type: "seed" | "address") => {
+    await navigator.clipboard.writeText(text);
+    if (type === "seed") {
       setSeedPhraseCopied(true);
-      toast({
-        title: "Seed Phrase Copied",
-        description: "Your seed phrase has been copied to the clipboard."
-      });
-      setTimeout(() => setSeedPhraseCopied(false), 3000);
-    }
-  };
-
-  const handleCopyAddress = async () => {
-    if (walletResult?.wallet.address) {
-      await navigator.clipboard.writeText(walletResult.wallet.address);
+      setTimeout(() => setSeedPhraseCopied(false), 2000);
+    } else {
       setAddressCopied(true);
-      toast({
-        title: "Address Copied",
-        description: "Your wallet address has been copied to the clipboard."
-      });
-      setTimeout(() => setAddressCopied(false), 3000);
+      setTimeout(() => setAddressCopied(false), 2000);
     }
+    toast({
+      title: "Copied to Clipboard",
+      description: `Your ${type === "seed" ? "seed phrase" : "wallet address"} has been copied.`,
+      variant: "default",
+    });
   };
 
   const handleDownloadBackup = () => {
@@ -142,31 +147,35 @@ export default function CreateWallet() {
         address: walletResult.wallet.address,
         cdpWalletId: walletResult.cdpWalletId,
         networkInfo: walletResult.networkInfo,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `wallet-backup-${walletResult.wallet.address.slice(0, 10)}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       toast({
         title: "Backup Downloaded",
-        description: "Your wallet backup file has been downloaded."
+        description: "Your wallet backup file has been downloaded.",
+        variant: "default",
       });
     }
   };
 
   const handleConfirmBackup = () => {
-    setCurrentStep('complete');
+    setCurrentStep("complete");
     toast({
       title: "Wallet Setup Complete!",
-      description: "Your CDP wallet is ready to use."
+      description: "Your CDP wallet is ready to use.",
+      variant: "default",
     });
   };
 
@@ -174,370 +183,414 @@ export default function CreateWallet() {
     if (!walletResult?.cdpWalletId) return;
 
     setIsFunding(true);
-    
+
     try {
-      const response = await fetch('/api/wallet/fund', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cdpWalletId: walletResult.cdpWalletId
-        }),
+      const response = await fetch("/api/wallet/fund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cdpWalletId: walletResult.cdpWalletId }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fund wallet');
+        throw new Error(data.error || "Failed to fund wallet");
       }
 
       toast({
         title: "Wallet Funded!",
-        description: `Successfully funded with ${data.faucetAmount} ETH. ${data.note || ''}`
+        description: `Successfully funded with ${data.faucetAmount} ETH. ${data.note || ""}`,
+        variant: "default",
       });
-
     } catch (error) {
-      console.error('Error funding wallet:', error);
+      console.error("Error funding wallet:", error);
       toast({
         title: "Funding Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive"
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
       });
     } finally {
       setIsFunding(false);
     }
   };
 
-  if (currentStep === 'create') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 p-6">
-        <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <Link href="/consumer/dashboard" className="inline-flex items-center text-gray-300 hover:text-white mb-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Link>
-            <h1 className="text-4xl font-bold text-white mb-2">Create CDP Wallet</h1>
-            <p className="text-gray-300">Create a new Coinbase Developer Platform wallet on Base Sepolia testnet</p>
-          </div>
-
-          {/* Create Wallet Card */}
-          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case "create":
+        return (
+          <Card className="mx-auto max-w-2xl">
             <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <Wallet className="w-6 h-6 mr-3" />
-                Create Your Wallet
+              <CardTitle className="flex items-center">
+                <Wallet className="text-primary mr-3 h-6 w-6" />
+                Create Your CDP Wallet
               </CardTitle>
-              <CardDescription className="text-gray-300">
-                Generate a new custodial wallet using Coinbase's CDP infrastructure. Your wallet will be created on Base Sepolia testnet for safe testing.
+              <CardDescription>
+                Generate a new custodial wallet on Base Sepolia testnet using
+                Coinbase's secure Developer Platform infrastructure.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Features */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="flex items-start space-x-3">
-                  <Shield className="w-5 h-5 text-green-400 mt-1" />
+                  <Shield className="text-success mt-1 h-5 w-5 flex-shrink-0" />
                   <div>
-                    <h3 className="text-white font-medium">Secure Infrastructure</h3>
-                    <p className="text-gray-300 text-sm">Built on Coinbase's enterprise-grade security</p>
+                    <h3 className="font-medium">Secure Infrastructure</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Built on Coinbase's enterprise-grade security
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <Key className="w-5 h-5 text-blue-400 mt-1" />
+                  <Key className="text-primary mt-1 h-5 w-5 flex-shrink-0" />
                   <div>
-                    <h3 className="text-white font-medium">Full Control</h3>
-                    <p className="text-gray-300 text-sm">You own your private keys and seed phrase</p>
+                    <h3 className="font-medium">Full Control</h3>
+                    <p className="text-muted-foreground text-sm">
+                      You own your private keys and seed phrase
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Network Info */}
-              <div className="bg-white/5 rounded-lg p-4">
-                <h4 className="text-white font-medium mb-3">Network Information</h4>
-                <div className="space-y-2 text-sm">
+              <Card className="bg-secondary">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base">
+                    Network Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-300">Network</span>
-                    <span className="text-white">Base Sepolia</span>
+                    <span className="text-muted-foreground">Network</span>
+                    <span>Base Sepolia</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-300">Chain ID</span>
-                    <span className="text-white">84532</span>
+                    <span className="text-muted-foreground">Chain ID</span>
+                    <span>84532</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-300">Type</span>
-                    <span className="text-white">Testnet</span>
+                    <span className="text-muted-foreground">Type</span>
+                    <span>Testnet</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Block Explorer</span>
-                    <a href="https://sepolia.basescan.org" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 flex items-center">
-                      BaseScan <ExternalLink className="w-3 h-3 ml-1" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      Block Explorer
+                    </span>
+                    <a
+                      href="https://sepolia.basescan.org"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary flex items-center hover:underline"
+                    >
+                      BaseScan <ExternalLink className="ml-1 h-3 w-3" />
                     </a>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
-              {/* Create Button */}
-              <Button
-                onClick={handleCreateWallet}
-                disabled={isCreating}
-                className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-semibold py-3"
-              >
-                {isCreating ? "Creating Wallet..." : "Create CDP Wallet"}
-              </Button>
-
-              {/* Disclaimer */}
-              <div className="flex items-start space-x-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5" />
+              <div className="bg-warning/10 border-warning/20 flex items-start space-x-3 rounded-lg border p-4">
+                <AlertTriangle className="text-warning mt-0.5 h-5 w-5 flex-shrink-0" />
                 <div>
-                  <p className="text-yellow-200 text-sm">
-                    <strong>Important:</strong> This wallet will be created on Base Sepolia testnet. 
-                    You'll receive a seed phrase that you must securely store - it's the only way to recover your wallet.
+                  <h4 className="text-warning mb-1 font-medium">Important</h4>
+                  <p className="text-muted-foreground text-sm">
+                    This wallet is for testnet use only. You will receive a seed
+                    phrase that you must store securely. It is the only way to
+                    recover your wallet.
                   </p>
                 </div>
               </div>
+
+              <Button
+                onClick={handleCreateWallet}
+                disabled={isCreating}
+                className="w-full"
+                size="lg"
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Wallet...
+                  </>
+                ) : (
+                  "Create CDP Wallet"
+                )}
+              </Button>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    );
-  }
+        );
 
-  if (currentStep === 'backup') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 p-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">Secure Your Wallet</h1>
-            <p className="text-gray-300">Save your seed phrase and wallet information safely</p>
-          </div>
-
-          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+      case "backup":
+        return (
+          <Card className="mx-auto max-w-2xl">
             <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <Shield className="w-6 h-6 mr-3" />
+              <CardTitle className="flex items-center">
+                <Shield className="text-success mr-3 h-6 w-6" />
                 Wallet Created Successfully
               </CardTitle>
-              <CardDescription className="text-gray-300">
-                Your CDP wallet has been created. Please securely store your seed phrase - it's the only way to recover your wallet.
+              <CardDescription>
+                Please securely store your seed phrase. This is the only way to
+                recover your wallet.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Wallet Address */}
               <div>
-                <label className="text-white text-sm font-medium mb-2 block">Wallet Address</label>
+                <label className="mb-2 block text-sm font-medium">
+                  Wallet Address
+                </label>
                 <div className="flex items-center space-x-2">
-                  <div className="bg-white/5 rounded p-3 flex-1">
-                    <code className="text-gray-300 text-sm font-mono break-all">
-                      {walletResult?.wallet.address}
-                    </code>
+                  <div className="bg-secondary flex-1 rounded p-3 font-mono text-sm break-all">
+                    {walletResult?.wallet.address}
                   </div>
                   <Button
-                    onClick={handleCopyAddress}
+                    onClick={() =>
+                      handleCopy(walletResult?.wallet.address || "", "address")
+                    }
                     variant="outline"
-                    size="sm"
-                    className="border-white/20 text-white hover:bg-white/10"
+                    size="icon"
                   >
-                    {addressCopied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {addressCopied ? (
+                      <CheckCircle className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
 
-              {/* Seed Phrase */}
               <div>
-                <label className="text-white text-sm font-medium mb-2 block">Seed Phrase (Recovery Phrase)</label>
-                <div className="bg-white/5 rounded p-4 border border-red-500/30">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-red-400 text-sm font-medium">⚠️ Keep this safe and private</span>
+                <label className="mb-2 block text-sm font-medium">
+                  Seed Phrase (Recovery Phrase)
+                </label>
+                <div className="bg-secondary border-destructive/30 rounded border p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-destructive text-sm font-medium">
+                      ⚠️ Keep this safe and private
+                    </span>
                     <Button
                       onClick={() => setShowSeedPhrase(!showSeedPhrase)}
                       variant="ghost"
-                      size="sm"
-                      className="text-gray-300 hover:text-white"
+                      size="icon"
                     >
-                      {showSeedPhrase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showSeedPhrase ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                   {showSeedPhrase ? (
                     <div className="space-y-3">
-                      <p className="text-gray-300 text-sm font-mono break-all leading-relaxed">
+                      <p className="font-mono leading-relaxed break-all">
                         {walletResult?.seedPhrase}
                       </p>
                       <Button
-                        onClick={handleCopySeedPhrase}
+                        onClick={() =>
+                          handleCopy(walletResult?.seedPhrase || "", "seed")
+                        }
                         variant="outline"
                         size="sm"
-                        className="border-white/20 text-white hover:bg-white/10"
                       >
                         {seedPhraseCopied ? (
                           <>
-                            <CheckCircle className="w-4 h-4 mr-2" />
+                            <CheckCircle className="mr-2 h-4 w-4" />
                             Copied
                           </>
                         ) : (
                           <>
-                            <Copy className="w-4 h-4 mr-2" />
+                            <Copy className="mr-2 h-4 w-4" />
                             Copy Seed Phrase
                           </>
                         )}
                       </Button>
                     </div>
                   ) : (
-                    <p className="text-gray-400 text-sm">Click the eye icon to reveal your seed phrase</p>
+                    <p className="text-muted-foreground text-sm">
+                      Click the eye icon to reveal your seed phrase.
+                    </p>
                   )}
                 </div>
               </div>
 
-              {/* Network Info */}
-              <div className="bg-white/5 rounded-lg p-4">
-                <h4 className="text-white font-medium mb-3">Network Details</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">Network</span>
-                    <span className="text-white">{walletResult?.networkInfo.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-300">CDP Wallet ID</span>
-                    <span className="text-white font-mono text-xs">{formatAddress(walletResult?.cdpWalletId || '')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-4">
+              <div className="flex flex-col gap-4 sm:flex-row">
                 <Button
                   onClick={handleDownloadBackup}
                   variant="outline"
-                  className="flex-1 border-white/20 text-white hover:bg-white/10"
+                  className="flex-1"
                 >
-                  <Download className="w-4 h-4 mr-2" />
+                  <Download className="mr-2 h-4 w-4" />
                   Download Backup
                 </Button>
-                <Button
-                  onClick={handleConfirmBackup}
-                  className="flex-1 bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700"
-                >
+                <Button onClick={handleConfirmBackup} className="flex-1">
                   I've Saved My Seed Phrase
                 </Button>
               </div>
 
-              {/* Security Warning */}
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
-                  <div>
-                    <h4 className="text-red-400 font-medium mb-1">Security Warning</h4>
-                    <ul className="text-red-200 text-sm space-y-1">
-                      <li>• Never share your seed phrase with anyone</li>
-                      <li>• Store it in a secure location offline</li>
-                      <li>• This is the only way to recover your wallet</li>
-                      <li>• Coinbase cannot recover lost seed phrases</li>
-                    </ul>
-                  </div>
+              <div className="bg-destructive/10 border-destructive/20 flex items-start space-x-3 rounded-lg border p-4">
+                <AlertTriangle className="text-destructive mt-0.5 h-5 w-5 flex-shrink-0" />
+                <div>
+                  <h4 className="text-destructive mb-1 font-medium">
+                    Security Warning
+                  </h4>
+                  <ul className="text-muted-foreground list-inside list-disc space-y-1 text-sm">
+                    <li>Never share your seed phrase with anyone.</li>
+                    <li>Store it in a secure location offline.</li>
+                    <li>Coinbase cannot recover lost seed phrases.</li>
+                  </ul>
                 </div>
               </div>
             </CardContent>
           </Card>
+        );
+
+      case "complete":
+        return (
+          <Card className="mx-auto max-w-2xl">
+            <CardHeader className="text-center">
+              <div className="bg-success/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                <CheckCircle className="text-success h-8 w-8" />
+              </div>
+              <CardTitle>Setup Complete!</CardTitle>
+              <CardDescription>
+                Your CDP wallet is now ready to use.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Card className="bg-secondary">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base">Your Wallet</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Address</span>
+                    <span className="font-mono">
+                      {formatAddress(walletResult?.wallet.address || "")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Network</span>
+                    <span>{walletResult?.networkInfo.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Status</span>
+                    <span className="text-success font-medium">Active</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div>
+                <h4 className="mb-3 font-medium">Next Steps</h4>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center">
+                    <CheckCircle className="text-success mr-3 h-4 w-4 flex-shrink-0" />
+                    Fund your wallet with testnet tokens.
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="text-success mr-3 h-4 w-4 flex-shrink-0" />
+                    Link your data sources on the dashboard.
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="text-success mr-3 h-4 w-4 flex-shrink-0" />
+                    Start earning and withdraw funds.
+                  </li>
+                </ul>
+              </div>
+
+              <Card className="bg-secondary">
+                <CardContent className="pt-6">
+                  <h4 className="mb-2 font-medium">Get Testnet Tokens</h4>
+                  <p className="text-muted-foreground mb-4 text-sm">
+                    Fund your wallet with Base Sepolia testnet tokens to start
+                    testing transactions. This is a free faucet.
+                  </p>
+                  <Button
+                    onClick={handleFundWallet}
+                    disabled={isFunding}
+                    className="w-full"
+                    variant="success"
+                  >
+                    {isFunding ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Funding...
+                      </>
+                    ) : (
+                      "Fund with Testnet Tokens"
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <Button asChild variant="outline" className="flex-1">
+                  <Link
+                    href={`${walletResult?.networkInfo.blockExplorer}/address/${walletResult?.wallet.address}`}
+                    target="_blank"
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View on Explorer
+                  </Link>
+                </Button>
+                <Button asChild className="flex-1">
+                  <Link href="/consumer/dashboard">Go to Dashboard</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="bg-surface min-h-screen">
+      <header className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 border-b backdrop-blur">
+        <div className="container">
+          <div className="flex h-16 items-center justify-between">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
+                <Globe className="text-primary-foreground h-5 w-5" />
+              </div>
+              <h1 className="text-foreground text-xl font-bold">DataMarket</h1>
+            </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/consumer/dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Dashboard
+              </Link>
+            </Button>
+          </div>
         </div>
+      </header>
+
+      <main className="section-padding">
+        <div className="container">
+          <div className="mx-auto mb-12 max-w-2xl text-center">
+            <h1 className="text-foreground mb-2 text-4xl font-bold">
+              Create New Wallet
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Follow the steps to create, back up, and fund your new secure
+              wallet.
+            </p>
+          </div>
+          {renderStepContent()}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default function CreateWalletPage() {
+  const { status } = useSession();
+
+  if (status === "loading") {
+    return (
+      <div className="bg-background flex min-h-screen items-center justify-center">
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
       </div>
     );
   }
 
-  // Complete step
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Wallet Ready!</h1>
-          <p className="text-gray-300">Your CDP wallet is now set up and ready to use</p>
-        </div>
-
-        <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <CheckCircle className="w-6 h-6 mr-3 text-green-400" />
-              Setup Complete
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Wallet Summary */}
-            <div className="bg-white/5 rounded-lg p-4">
-              <h4 className="text-white font-medium mb-3">Your Wallet</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-300">Address</span>
-                  <span className="text-white font-mono">{formatAddress(walletResult?.wallet.address || '')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-300">Network</span>
-                  <span className="text-white">{walletResult?.networkInfo.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-300">Status</span>
-                  <span className="text-green-400">Active</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Next Steps */}
-            <div>
-              <h4 className="text-white font-medium mb-3">Next Steps</h4>
-              <ul className="space-y-2 text-gray-300 text-sm">
-                <li className="flex items-center">
-                  <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                  Fund your wallet with testnet tokens
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                  Start earning by linking your data sources
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                  Withdraw earnings to your bank account
-                </li>
-              </ul>
-            </div>
-
-            {/* Fund Wallet Button */}
-            <div className="bg-white/5 rounded-lg p-4">
-              <h4 className="text-white font-medium mb-2">Get Testnet Tokens</h4>
-              <p className="text-gray-300 text-sm mb-3">
-                Fund your wallet with Base Sepolia testnet tokens to start testing transactions.
-              </p>
-              <Button
-                onClick={handleFundWallet}
-                disabled={isFunding}
-                className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700"
-              >
-                {isFunding ? "Funding Wallet..." : "Fund with Testnet Tokens"}
-              </Button>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex space-x-4">
-              <Button 
-                asChild 
-                variant="outline" 
-                className="flex-1 border-white/20 text-white hover:bg-white/10"
-              >
-                <Link href={`${walletResult?.networkInfo.blockExplorer}/address/${walletResult?.wallet.address}`} target="_blank">
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  View on Explorer
-                </Link>
-              </Button>
-              <Button 
-                asChild 
-                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-              >
-                <Link href="/consumer/dashboard">
-                  Go to Dashboard
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-} 
+  return <PageContent />;
+}

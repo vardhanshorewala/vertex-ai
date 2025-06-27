@@ -1,52 +1,87 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useToast } from "~/components/ui/use-toast";
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   User,
   Shield,
   Bell,
   Eye,
-  Smartphone,
   Key,
-  CreditCard,
   Globe,
   Save,
-  Lock,
-  Trash2
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import type { Consumer } from "~/types";
 import Link from "next/link";
 
 const mockConsumer: Consumer = {
-  id: 'consumer-1',
-  email: 'alice@example.com',
-  name: 'Alice Johnson',
-  createdAt: '2024-01-15T10:00:00Z',
-  updatedAt: '2024-01-20T15:30:00Z',
-  custodialWalletId: 'wallet-consumer-1',
+  id: "consumer-1",
+  email: "alice@example.com",
+  name: "Alice Johnson",
+  createdAt: "2024-01-15T10:00:00Z",
+  updatedAt: "2024-01-20T15:30:00Z",
+  custodialWalletId: "wallet-consumer-1",
   linkedAccounts: [],
-  kycStatus: 'verified'
+  kycStatus: "verified",
 };
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+  description,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  description: string;
+}) {
+  return (
+    <div className="bg-secondary flex items-center justify-between rounded-lg p-4">
+      <div>
+        <div className="font-medium">{label}</div>
+        <div className="text-muted-foreground text-sm">{description}</div>
+      </div>
+      <label className="relative inline-flex cursor-pointer items-center">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="peer sr-only"
+        />
+        <div className="bg-background peer after:border-border peer-checked:bg-primary h-6 w-11 rounded-full peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+      </label>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const [consumer, setConsumer] = useState<Consumer | null>(null);
+  const [, setConsumer] = useState<Consumer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("profile");
 
   // Profile settings
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
 
   // Security settings
-  const [currentPin, setCurrentPin] = useState('');
-  const [newPin, setNewPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   // Privacy settings
@@ -60,497 +95,371 @@ export default function SettingsPage() {
   const [transactionAlerts, setTransactionAlerts] = useState(true);
 
   useEffect(() => {
-    // Mock data loading
     const loadData = async () => {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
       setConsumer(mockConsumer);
       setName(mockConsumer.name);
       setEmail(mockConsumer.email);
-      setPhone('+1 (555) 123-4567'); // Mock phone
-      
+      setPhone("+1 (555) 123-4567");
+
       setIsLoading(false);
     };
     loadData();
   }, []);
 
   const handleSaveProfile = async () => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Profile Updated",
-        description: "Your profile information has been saved successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Update Failed",
-        description: "Failed to update profile. Please try again.",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "Profile Updated",
+      description: "Your profile information has been saved successfully.",
+      variant: "default",
+    });
   };
 
   const handleChangePIN = async () => {
-    if (!currentPin || !newPin || !confirmPin) {
+    if (
+      !currentPin ||
+      !newPin ||
+      !confirmPin ||
+      newPin !== confirmPin ||
+      newPin.length !== 4
+    ) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all PIN fields.",
-        variant: "destructive"
+        title: "PIN Error",
+        description: "Please check your PIN entries.",
+        variant: "destructive",
       });
       return;
     }
-
-    if (newPin !== confirmPin) {
-      toast({
-        title: "PIN Mismatch",
-        description: "New PIN and confirmation PIN don't match.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (newPin.length !== 4) {
-      toast({
-        title: "Invalid PIN",
-        description: "PIN must be exactly 4 digits.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "PIN Updated",
-        description: "Your security PIN has been changed successfully.",
-      });
-
-      setCurrentPin('');
-      setNewPin('');
-      setConfirmPin('');
-    } catch (error) {
-      toast({
-        title: "PIN Change Failed",
-        description: "Failed to change PIN. Please try again.",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "PIN Updated",
+      description: "Your security PIN has been changed successfully.",
+      variant: "default",
+    });
+    setCurrentPin("");
+    setNewPin("");
+    setConfirmPin("");
   };
 
   const handleToggle2FA = async () => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setTwoFactorEnabled(!twoFactorEnabled);
-      
-      toast({
-        title: twoFactorEnabled ? "2FA Disabled" : "2FA Enabled",
-        description: twoFactorEnabled 
-          ? "Two-factor authentication has been disabled." 
-          : "Two-factor authentication has been enabled.",
-      });
-    } catch (error) {
-      toast({
-        title: "2FA Update Failed",
-        description: "Failed to update two-factor authentication. Please try again.",
-        variant: "destructive"
-      });
-    }
+    setTwoFactorEnabled(!twoFactorEnabled);
+    toast({
+      title: twoFactorEnabled ? "2FA Disabled" : "2FA Enabled",
+      variant: "default",
+    });
   };
 
   const handleSavePrivacy = async () => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Privacy Settings Updated",
-        description: "Your privacy preferences have been saved.",
-      });
-    } catch (error) {
-      toast({
-        title: "Update Failed",
-        description: "Failed to update privacy settings. Please try again.",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "Privacy Settings Updated",
+      description: "Your privacy preferences have been saved.",
+      variant: "default",
+    });
   };
 
   const handleSaveNotifications = async () => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Notification Settings Updated",
-        description: "Your notification preferences have been saved.",
-      });
-    } catch (error) {
-      toast({
-        title: "Update Failed",
-        description: "Failed to update notification settings. Please try again.",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "Notification Settings Updated",
+      description: "Your notification preferences have been saved.",
+      variant: "default",
+    });
   };
 
   const handleDeleteAccount = async () => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete your account? This action cannot be undone and you will lose all your data and earnings."
+      "Are you sure you want to delete your account? This action cannot be undone and you will lose all your data and earnings.",
     );
-
-    if (!confirmed) return;
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+    if (confirmed) {
       toast({
         title: "Account Deletion Initiated",
-        description: "Your account deletion request has been submitted. You will receive an email confirmation.",
-      });
-    } catch (error) {
-      toast({
-        title: "Deletion Failed",
-        description: "Failed to delete account. Please contact support.",
-        variant: "destructive"
+        description: "Your account deletion request has been submitted.",
+        variant: "default",
       });
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading settings...</div>
+      <div className="bg-background flex min-h-screen items-center justify-center">
+        <div className="flex items-center space-x-3">
+          <Loader2 className="text-primary h-8 w-8 animate-spin" />
+          <p className="text-muted-foreground text-lg">Loading settings...</p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
-        <div className="flex items-center space-x-4 mb-8">
-          <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
-            <Link href="/consumer/dashboard">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-4xl font-bold text-white">Account Settings</h1>
-            <p className="text-gray-300">Manage your profile, security, and preferences</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Profile Settings */}
-          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+  const renderContent = () => {
+    switch (activeTab) {
+      case "profile":
+        return (
+          <Card>
             <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <User className="w-5 h-5 mr-2" />
-                Profile Information
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Update your personal information
-              </CardDescription>
+              <CardTitle>Profile Information</CardTitle>
+              <CardDescription>Update your personal details.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-300 mb-2 block">Full Name</label>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-300 mb-2 block">Email Address</label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-300 mb-2 block">Phone Number</label>
-                  <Input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white"
-                  />
-                </div>
-                <div className="pt-4">
-                  <Button onClick={handleSaveProfile} className="w-full bg-gradient-to-r from-blue-500 to-purple-600">
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Profile
-                  </Button>
-                </div>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  Full Name
+                </label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  Email Address
+                </label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  Phone Number
+                </label>
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+              <div className="pt-4">
+                <Button onClick={handleSaveProfile} className="w-full">
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Profile
+                </Button>
               </div>
             </CardContent>
           </Card>
-
-          {/* Security Settings */}
-          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+        );
+      case "security":
+        return (
+          <Card>
             <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <Shield className="w-5 h-5 mr-2" />
-                Security Settings
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Manage your account security
+              <CardTitle>Security Settings</CardTitle>
+              <CardDescription>
+                Manage your account security features.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* PIN Change */}
-                <div className="space-y-3">
-                  <h4 className="text-white font-medium">Change Security PIN</h4>
-                  <div className="space-y-3">
-                    <Input
-                      type="password"
-                      placeholder="Current PIN"
-                      value={currentPin}
-                      onChange={(e) => setCurrentPin(e.target.value)}
-                      maxLength={4}
-                      className="bg-white/5 border-white/20 text-white text-center tracking-widest"
-                    />
-                    <Input
-                      type="password"
-                      placeholder="New PIN"
-                      value={newPin}
-                      onChange={(e) => setNewPin(e.target.value)}
-                      maxLength={4}
-                      className="bg-white/5 border-white/20 text-white text-center tracking-widest"
-                    />
-                    <Input
-                      type="password"
-                      placeholder="Confirm New PIN"
-                      value={confirmPin}
-                      onChange={(e) => setConfirmPin(e.target.value)}
-                      maxLength={4}
-                      className="bg-white/5 border-white/20 text-white text-center tracking-widest"
-                    />
-                    <Button onClick={handleChangePIN} variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
-                      <Key className="w-4 h-4 mr-2" />
-                      Update PIN
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Two-Factor Authentication */}
-                <div className="space-y-3">
-                  <h4 className="text-white font-medium">Two-Factor Authentication</h4>
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="flex items-center space-x-3">
-                      <Smartphone className="w-5 h-5 text-gray-400" />
-                      <div>
-                        <div className="text-white text-sm">Authenticator App</div>
-                        <div className="text-gray-400 text-xs">
-                          {twoFactorEnabled ? 'Enabled' : 'Disabled'}
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={handleToggle2FA}
-                      variant={twoFactorEnabled ? "destructive" : "default"}
-                      size="sm"
-                    >
-                      {twoFactorEnabled ? 'Disable' : 'Enable'}
-                    </Button>
-                  </div>
-                </div>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <h4 className="font-medium">Change Security PIN</h4>
+                <Input
+                  type="password"
+                  placeholder="Current PIN"
+                  value={currentPin}
+                  onChange={(e) => setCurrentPin(e.target.value)}
+                  maxLength={4}
+                  className="text-center tracking-widest"
+                />
+                <Input
+                  type="password"
+                  placeholder="New PIN"
+                  value={newPin}
+                  onChange={(e) => setNewPin(e.target.value)}
+                  maxLength={4}
+                  className="text-center tracking-widest"
+                />
+                <Input
+                  type="password"
+                  placeholder="Confirm New PIN"
+                  value={confirmPin}
+                  onChange={(e) => setConfirmPin(e.target.value)}
+                  maxLength={4}
+                  className="text-center tracking-widest"
+                />
+                <Button
+                  onClick={handleChangePIN}
+                  variant="secondary"
+                  className="w-full"
+                >
+                  <Key className="mr-2 h-4 w-4" />
+                  Update PIN
+                </Button>
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-medium">Two-Factor Authentication (2FA)</h4>
+                <Toggle
+                  checked={twoFactorEnabled}
+                  onChange={handleToggle2FA}
+                  label="Authenticator App"
+                  description={twoFactorEnabled ? "Enabled" : "Disabled"}
+                />
               </div>
             </CardContent>
           </Card>
-
-          {/* Privacy Settings */}
-          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+        );
+      case "privacy":
+        return (
+          <Card>
             <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <Eye className="w-5 h-5 mr-2" />
-                Privacy Controls
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Control how your data is used
+              <CardTitle>Privacy Controls</CardTitle>
+              <CardDescription>
+                Control how your data is used across the platform.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                  <div>
-                    <div className="text-white text-sm">Data Sharing</div>
-                    <div className="text-gray-400 text-xs">Allow data sales to approved brokers</div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={dataSharing}
-                      onChange={(e) => setDataSharing(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                  <div>
-                    <div className="text-white text-sm">Analytics</div>
-                    <div className="text-gray-400 text-xs">Help improve our platform</div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={analyticsOptIn}
-                      onChange={(e) => setAnalyticsOptIn(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                  <div>
-                    <div className="text-white text-sm">Marketing Emails</div>
-                    <div className="text-gray-400 text-xs">Receive promotional content</div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={marketingEmails}
-                      onChange={(e) => setMarketingEmails(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <Button onClick={handleSavePrivacy} className="w-full bg-gradient-to-r from-green-500 to-teal-600">
-                  <Save className="w-4 h-4 mr-2" />
+            <CardContent className="space-y-4">
+              <Toggle
+                checked={dataSharing}
+                onChange={setDataSharing}
+                label="Data Sharing"
+                description="Allow data sales to approved brokers"
+              />
+              <Toggle
+                checked={analyticsOptIn}
+                onChange={setAnalyticsOptIn}
+                label="Platform Analytics"
+                description="Help us improve our platform"
+              />
+              <Toggle
+                checked={marketingEmails}
+                onChange={setMarketingEmails}
+                label="Marketing Emails"
+                description="Receive promotional content and offers"
+              />
+              <div className="pt-4">
+                <Button onClick={handleSavePrivacy} className="w-full">
+                  <Save className="mr-2 h-4 w-4" />
                   Save Privacy Settings
                 </Button>
               </div>
             </CardContent>
           </Card>
-
-          {/* Notification Settings */}
-          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+        );
+      case "notifications":
+        return (
+          <Card>
             <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <Bell className="w-5 h-5 mr-2" />
-                Notifications
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Configure your notification preferences
+              <CardTitle>Notifications</CardTitle>
+              <CardDescription>
+                Configure your notification preferences.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                  <div>
-                    <div className="text-white text-sm">Email Notifications</div>
-                    <div className="text-gray-400 text-xs">Account updates and alerts</div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={emailNotifications}
-                      onChange={(e) => setEmailNotifications(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                  <div>
-                    <div className="text-white text-sm">Push Notifications</div>
-                    <div className="text-gray-400 text-xs">Browser and mobile alerts</div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={pushNotifications}
-                      onChange={(e) => setPushNotifications(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                  <div>
-                    <div className="text-white text-sm">Transaction Alerts</div>
-                    <div className="text-gray-400 text-xs">Data sales and withdrawals</div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={transactionAlerts}
-                      onChange={(e) => setTransactionAlerts(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <Button onClick={handleSaveNotifications} className="w-full bg-gradient-to-r from-blue-500 to-purple-600">
-                  <Save className="w-4 h-4 mr-2" />
+            <CardContent className="space-y-4">
+              <Toggle
+                checked={emailNotifications}
+                onChange={setEmailNotifications}
+                label="Email Notifications"
+                description="Account updates and security alerts"
+              />
+              <Toggle
+                checked={pushNotifications}
+                onChange={setPushNotifications}
+                label="Push Notifications"
+                description="Browser and mobile alerts"
+              />
+              <Toggle
+                checked={transactionAlerts}
+                onChange={setTransactionAlerts}
+                label="Transaction Alerts"
+                description="Notifications for data sales and withdrawals"
+              />
+              <div className="pt-4">
+                <Button onClick={handleSaveNotifications} className="w-full">
+                  <Save className="mr-2 h-4 w-4" />
                   Save Notification Settings
                 </Button>
               </div>
             </CardContent>
           </Card>
-
-          {/* Account Management */}
-          <Card className="bg-white/10 border-white/20 backdrop-blur-sm lg:col-span-2">
+        );
+      case "account":
+        return (
+          <Card>
             <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <Globe className="w-5 h-5 mr-2" />
-                Account Management
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Manage your account and data
-              </CardDescription>
+              <CardTitle>Account Management</CardTitle>
+              <CardDescription>Manage your account and data.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                  <Link href="/consumer/transactions">
-                    <CreditCard className="w-4 h-4 mr-2" />
-                    View All Transactions
-                  </Link>
-                </Button>
-
-                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                  <Lock className="w-4 h-4 mr-2" />
-                  Export My Data
-                </Button>
-
-                <Button
-                  onClick={handleDeleteAccount}
-                  variant="destructive"
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
+              <div className="bg-destructive/10 border-destructive/20 rounded-lg border p-4">
+                <h4 className="text-destructive mb-2 font-medium">
                   Delete Account
-                </Button>
-              </div>
-
-              <div className="mt-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-                <h4 className="text-red-300 font-medium mb-2">Account Deletion</h4>
-                <p className="text-red-200 text-sm">
-                  Deleting your account will permanently remove all your data, linked accounts, 
-                  transaction history, and any remaining wallet balance. This action cannot be undone.
+                </h4>
+                <p className="text-muted-foreground mb-4 text-sm">
+                  Deleting your account will permanently remove all your data,
+                  linked accounts, transaction history, and any remaining wallet
+                  balance. This action cannot be undone.
                 </p>
+                <Button onClick={handleDeleteAccount} variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete My Account
+                </Button>
               </div>
             </CardContent>
           </Card>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const tabs = [
+    { id: "profile", label: "Profile", icon: User },
+    { id: "security", label: "Security", icon: Shield },
+    { id: "privacy", label: "Privacy", icon: Eye },
+    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "account", label: "Account", icon: Globe },
+  ];
+
+  return (
+    <div className="bg-surface min-h-screen">
+      <header className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 border-b backdrop-blur">
+        <div className="container">
+          <div className="flex h-16 items-center justify-between">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
+                <Globe className="text-primary-foreground h-5 w-5" />
+              </div>
+              <h1 className="text-foreground text-xl font-bold">DataMarket</h1>
+            </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/consumer/dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Dashboard
+              </Link>
+            </Button>
+          </div>
         </div>
-      </div>
+      </header>
+
+      <main className="section-padding">
+        <div className="container">
+          <div className="mb-12">
+            <h1 className="text-foreground mb-2 text-4xl font-bold">
+              Account Settings
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Manage your profile, security, and preferences.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
+            <div className="lg:col-span-1">
+              <Card>
+                <CardContent className="p-4">
+                  <nav className="flex flex-col space-y-1">
+                    {tabs.map((tab) => (
+                      <Button
+                        key={tab.id}
+                        variant={activeTab === tab.id ? "default" : "ghost"}
+                        onClick={() => setActiveTab(tab.id)}
+                        className="w-full justify-start"
+                      >
+                        <tab.icon className="mr-3 h-4 w-4" />
+                        {tab.label}
+                      </Button>
+                    ))}
+                  </nav>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="lg:col-span-3">{renderContent()}</div>
+          </div>
+        </div>
+      </main>
     </div>
   );
-} 
+}

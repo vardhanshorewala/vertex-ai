@@ -2,14 +2,47 @@
 
 @layer base {
   :root {
+    /* Light theme colors - Modern flat design palette */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --success: 142.1 76.2% 36.3%;
+    --success-foreground: 355.7 100% 97.3%;
+    --warning: 32.2 95% 44.1%;
+    --warning-foreground: 210 40% 98%;
+    --info: 199.7 89.2% 48.4%;
+    --info-foreground: 210 40% 98%;
+    --surface: 210 40% 98%;
+    --surface-foreground: 222.2 84% 4.9%;
+    --radius: 8px;
+  }
+
+  .dark {
+    /* Dark theme colors - Modern flat design palette */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
@@ -20,8 +53,15 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --radius: 0.5rem;
+    --ring: 217.2 91.2% 59.8%;
+    --success: 142.1 70.6% 45.3%;
+    --success-foreground: 144.9 80.4% 10%;
+    --warning: 32.2 95% 44.1%;
+    --warning-foreground: 210 40% 98%;
+    --info: 199.7 89.2% 48.4%;
+    --info-foreground: 210 40% 98%;
+    --surface: 217.2 32.6% 17.5%;
+    --surface-foreground: 210 40% 98%;
   }
 }
 
@@ -29,14 +69,74 @@
   * {
     border-color: hsl(var(--border));
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Modern typography scale */
+  h1 {
+    @apply text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl;
+  }
+
+  h2 {
+    @apply text-3xl font-semibold tracking-tight md:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl font-semibold tracking-tight md:text-3xl;
+  }
+
+  h4 {
+    @apply text-xl font-medium tracking-tight md:text-2xl;
+  }
+
+  h5 {
+    @apply text-lg font-medium md:text-xl;
+  }
+
+  h6 {
+    @apply text-base font-medium md:text-lg;
+  }
+
+  p {
+    @apply leading-7;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .lead {
+    @apply text-xl;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .text-large {
+    @apply text-lg font-medium;
+  }
+
+  .text-small {
+    @apply text-sm;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .text-muted {
+    @apply text-sm;
+    color: hsl(var(--muted-foreground));
   }
 }
 
 @layer utilities {
+  /* Color utilities */
   .bg-background {
     background-color: hsl(var(--background));
   }
@@ -79,6 +179,42 @@
   .text-destructive-foreground {
     color: hsl(var(--destructive-foreground));
   }
+  .bg-success {
+    background-color: hsl(var(--success));
+  }
+  .text-success-foreground {
+    color: hsl(var(--success-foreground));
+  }
+  .text-success {
+    color: hsl(var(--success));
+  }
+  .bg-warning {
+    background-color: hsl(var(--warning));
+  }
+  .text-warning-foreground {
+    color: hsl(var(--warning-foreground));
+  }
+  .text-warning {
+    color: hsl(var(--warning));
+  }
+  .bg-info {
+    background-color: hsl(var(--info));
+  }
+  .text-info-foreground {
+    color: hsl(var(--info-foreground));
+  }
+  .text-info {
+    color: hsl(var(--info));
+  }
+  .bg-surface {
+    background-color: hsl(var(--surface));
+  }
+  .text-surface-foreground {
+    color: hsl(var(--surface-foreground));
+  }
+  .border-border {
+    border-color: hsl(var(--border));
+  }
   .border-input {
     border-color: hsl(var(--input));
   }
@@ -88,36 +224,131 @@
   .ring-offset-background {
     --tw-ring-offset-color: hsl(var(--background));
   }
+  /* Modern spacing utilities */
+  .container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-padding {
+    @apply py-16 md:py-24;
+  }
+
+  .card-padding {
+    @apply p-6 md:p-8;
+  }
+
+  /* Modern shadows */
+  .shadow-soft {
+    box-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.08);
+  }
+
+  .shadow-medium {
+    box-shadow: 0 4px 16px 0 rgb(0 0 0 / 0.12);
+  }
+
+  .shadow-large {
+    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 0.16);
+  }
+
+  /* Glass effect for modern cards */
+  .glass {
+    @apply border border-white/20 bg-white/80 backdrop-blur-md;
+  }
+
+  .glass-dark {
+    @apply border border-white/10 bg-black/80 backdrop-blur-md;
+  }
+
+  /* Gradient utilities */
+  .gradient-primary {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--info)) 100%
+    );
+  }
+
+  .gradient-success {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--success)) 0%,
+      hsl(var(--info)) 100%
+    );
+  }
+
+  .gradient-surface {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--surface)) 0%,
+      hsl(var(--muted)) 100%
+    );
+  }
+
+  /* Interactive states */
+  .interactive {
+    @apply transition-all duration-200 ease-in-out hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .interactive-subtle {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  .interactive-subtle:hover {
+    background-color: hsl(var(--muted) / 0.5);
+  }
+
+  /* Focus styles */
+  .focus-ring {
+    outline: none;
+  }
+
+  .focus-ring:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Custom animations */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out forwards;
+  }
+
+  .animate-bounce-subtle {
+    animation: bounceSubtle 2s infinite;
+  }
 }
 
-@theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-}
-
-/* Custom scrollbar */
+/* Custom scrollbar - Modern flat design */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
+  background-color: hsl(var(--muted));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground));
-  border-radius: 4px;
+  background-color: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--foreground));
+  background-color: hsl(var(--muted-foreground) / 0.5);
 }
 
-/* Animation keyframes */
-@keyframes enter {
+/* Modern animation keyframes */
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -125,21 +356,58 @@
   }
 }
 
-@keyframes exit {
+@keyframes slideUp {
   from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
     opacity: 1;
     transform: translateY(0);
   }
-  to {
+}
+
+@keyframes scaleIn {
+  from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
-.animate-in {
-  animation: enter 0.2s ease-out;
+@keyframes bounceSubtle {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }
 }
 
-.animate-out {
-  animation: exit 0.15s ease-in;
+/* Selection styles */
+::selection {
+  background-color: hsl(var(--primary) / 0.2);
+  color: hsl(var(--primary));
+}
+
+/* Focus visible styles for accessibility */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+@theme {
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }

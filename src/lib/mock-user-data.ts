@@ -33,14 +33,14 @@ export const mockUserProfiles: MockUserProfile[] = [
       spotify: true,
       instagram: true,
       appleMusic: false,
-      facebook: true
+      facebook: true,
     },
     privacy: {
       hasOptedOut: false,
-      dataSharing: true
+      dataSharing: true,
     },
     walletAddress: "0x1234567890123456789012345678901234567890",
-    createdAt: "2024-01-15T10:00:00Z"
+    createdAt: "2024-01-15T10:00:00Z",
   },
   {
     id: "user-002",
@@ -54,14 +54,14 @@ export const mockUserProfiles: MockUserProfile[] = [
       spotify: false,
       instagram: true,
       appleMusic: true,
-      facebook: false
+      facebook: false,
     },
     privacy: {
       hasOptedOut: false,
-      dataSharing: true
+      dataSharing: true,
     },
     walletAddress: "0x2345678901234567890123456789012345678901",
-    createdAt: "2024-01-16T14:00:00Z"
+    createdAt: "2024-01-16T14:00:00Z",
   },
   {
     id: "user-003",
@@ -75,14 +75,14 @@ export const mockUserProfiles: MockUserProfile[] = [
       spotify: true,
       instagram: true,
       appleMusic: true,
-      facebook: true
+      facebook: true,
     },
     privacy: {
       hasOptedOut: false,
-      dataSharing: true
+      dataSharing: true,
     },
     walletAddress: "0x3456789012345678901234567890123456789012",
-    createdAt: "2024-01-17T09:30:00Z"
+    createdAt: "2024-01-17T09:30:00Z",
   },
   {
     id: "user-004",
@@ -96,14 +96,14 @@ export const mockUserProfiles: MockUserProfile[] = [
       spotify: true,
       instagram: false,
       appleMusic: false,
-      facebook: true
+      facebook: true,
     },
     privacy: {
       hasOptedOut: false,
-      dataSharing: true
+      dataSharing: true,
     },
     walletAddress: "0x4567890123456789012345678901234567890123",
-    createdAt: "2024-01-18T16:45:00Z"
+    createdAt: "2024-01-18T16:45:00Z",
   },
   {
     id: "user-005",
@@ -117,14 +117,14 @@ export const mockUserProfiles: MockUserProfile[] = [
       spotify: false,
       instagram: true,
       appleMusic: true,
-      facebook: false
+      facebook: false,
     },
     privacy: {
       hasOptedOut: false,
-      dataSharing: true
+      dataSharing: true,
     },
     walletAddress: "0x5678901234567890123456789012345678901234",
-    createdAt: "2024-01-19T11:20:00Z"
+    createdAt: "2024-01-19T11:20:00Z",
   },
   {
     id: "user-006",
@@ -138,15 +138,15 @@ export const mockUserProfiles: MockUserProfile[] = [
       spotify: true,
       instagram: true,
       appleMusic: true,
-      facebook: true
+      facebook: true,
     },
     privacy: {
       hasOptedOut: false,
-      dataSharing: true
+      dataSharing: true,
     },
     walletAddress: "0x6789012345678901234567890123456789012345",
-    createdAt: "2024-01-20T13:15:00Z"
-  }
+    createdAt: "2024-01-20T13:15:00Z",
+  },
 ];
 
 export function searchUserProfiles(searchParams: {
@@ -154,37 +154,48 @@ export function searchUserProfiles(searchParams: {
   state: string;
   phoneNumber?: string;
 }): MockUserProfile[] {
-  return mockUserProfiles.filter(profile => {
+  return mockUserProfiles.filter((profile) => {
     // Case-insensitive name matching
-    const nameMatch = profile.fullName.toLowerCase().includes(searchParams.fullName.toLowerCase());
-    
+    const nameMatch = profile.fullName
+      .toLowerCase()
+      .includes(searchParams.fullName.toLowerCase());
+
     // Exact state matching
-    const stateMatch = profile.state.toLowerCase() === searchParams.state.toLowerCase();
-    
+    const stateMatch =
+      profile.state.toLowerCase() === searchParams.state.toLowerCase();
+
     // Optional phone number matching
-    const phoneMatch = !searchParams.phoneNumber || 
-      profile.phoneNumber?.includes(searchParams.phoneNumber.replace(/\D/g, ''));
-    
+    const phoneMatch =
+      !searchParams.phoneNumber ||
+      profile.phoneNumber?.includes(
+        searchParams.phoneNumber.replace(/\D/g, ""),
+      );
+
     return nameMatch && stateMatch && phoneMatch && profile.privacy.dataSharing;
   });
 }
 
-export function calculateDataValue(profile: MockUserProfile, selectedSources: string[]): number {
+export function calculateDataValue(
+  profile: MockUserProfile,
+  selectedSources: string[],
+): number {
   const basePrices = {
     netflix: 1.25,
-    spotify: 1.00,
+    spotify: 1.0,
     instagram: 1.75,
     appleMusic: 0.75,
-    facebook: 2.00
+    facebook: 2.0,
   };
-  
+
   let total = 0;
-  selectedSources.forEach(source => {
-    const sourceKey = source.replace('-', '').toLowerCase() as keyof typeof basePrices;
-    if (profile.dataAvailable[sourceKey as keyof MockUserProfile['dataAvailable']]) {
-      total += basePrices[sourceKey] || 0;
+  selectedSources.forEach((source) => {
+    const sourceKey = source
+      .replace("-", "")
+      .toLowerCase() as keyof typeof basePrices;
+    if (profile.dataAvailable[sourceKey]) {
+      total += basePrices[sourceKey] ?? 0;
     }
   });
-  
+
   return total;
-} 
+}

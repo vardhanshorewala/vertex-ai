@@ -7,7 +7,8 @@ import { AuthProvider } from "~/components/providers/session-provider";
 
 export const metadata: Metadata = {
   title: "Data Marketplace | Consumer Data Platform",
-  description: "A three-sided marketplace for consumer data sharing with custodial wallet functionality",
+  description:
+    "A three-sided marketplace for consumer data sharing with custodial wallet functionality",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
@@ -20,8 +21,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geist.variable} dark`}>
-      <body className="min-h-screen bg-background font-sans antialiased">
+    <html lang="en" className={geist.variable}>
+      <body className="bg-background min-h-screen font-sans antialiased">
         <AuthProvider>
           <ToastProvider swipeDirection="right">
             {children}

@@ -6,13 +6,19 @@ export interface Consumer {
   updatedAt: string;
   custodialWalletId: string;
   linkedAccounts: LinkedAccount[];
-  kycStatus: 'pending' | 'verified' | 'rejected';
+  kycStatus: "pending" | "verified" | "rejected";
   securityPin?: string; // Hashed PIN for wallet access
 }
 
 export interface LinkedAccount {
   id: string;
-  platform: 'netflix' | 'spotify' | 'instagram' | 'apple-music' | 'facebook' | 'google';
+  platform:
+    | "netflix"
+    | "spotify"
+    | "instagram"
+    | "apple-music"
+    | "facebook"
+    | "google";
   accountId: string;
   linkedAt: string;
   dataAvailable: boolean;
@@ -34,17 +40,17 @@ export interface CustodialWallet {
 
 export interface Transaction {
   id: string;
-  type: 'data_sale' | 'withdrawal' | 'deposit';
+  type: "data_sale" | "withdrawal" | "deposit";
   fromWallet?: string;
   toWallet?: string;
   amount: string;
-  currency: 'ETH' | 'USDC';
-  status: 'pending' | 'completed' | 'failed';
+  currency: "ETH" | "USDC";
+  status: "pending" | "completed" | "failed";
   description: string;
   metadata?: {
     dataBrokerId?: string;
     dataSourcesRequested?: string[];
-    withdrawalMethod?: 'wallet' | 'bank';
+    withdrawalMethod?: "wallet" | "bank";
     bankAccountId?: string;
   };
   createdAt: string;
@@ -76,7 +82,7 @@ export interface DataRequest {
 }
 
 export interface DataSource {
-  platform: 'netflix' | 'spotify' | 'instagram' | 'apple-music' | 'facebook';
+  platform: "netflix" | "spotify" | "instagram" | "apple-music" | "facebook";
   price: number; // Additional cost in USD
 }
 
@@ -143,13 +149,13 @@ export interface WithdrawalRequest {
   id: string;
   consumerId: string;
   amount: string;
-  currency: 'ETH' | 'USDC';
-  method: 'wallet' | 'bank';
+  currency: "ETH" | "USDC";
+  method: "wallet" | "bank";
   destination: {
     walletAddress?: string;
     bankAccountId?: string;
   };
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: "pending" | "processing" | "completed" | "failed";
   estimatedCompletion?: string;
   fees: {
     networkFee: string;
@@ -162,7 +168,7 @@ export interface WithdrawalRequest {
 export interface BankAccount {
   id: string;
   consumerId: string;
-  accountType: 'checking' | 'savings';
+  accountType: "checking" | "savings";
   last4: string;
   bankName: string;
   isVerified: boolean;
@@ -171,7 +177,7 @@ export interface BankAccount {
 
 export interface AIRecommendation {
   id: string;
-  type: 'movie' | 'music' | 'content';
+  type: "movie" | "music" | "content";
   title: string;
   description: string;
   confidence: number;
@@ -189,12 +195,12 @@ export interface X402PaymentRequest {
   currency: string;
   description: string;
   recipientAddress: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CDPOffRampResponse {
   transactionId: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: "pending" | "processing" | "completed" | "failed";
   estimatedAmount: string;
   exchangeRate: string;
   fees: {
@@ -207,15 +213,15 @@ export interface CDPOffRampResponse {
 export interface SecurityEvent {
   id: string;
   consumerId: string;
-  eventType: 'login' | 'withdrawal_request' | 'pin_change' | 'account_link';
+  eventType: "login" | "withdrawal_request" | "pin_change" | "account_link";
   ipAddress: string;
   userAgent: string;
   success: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: string;
 }
 
 // Utility types
-export type NetworkType = 'base-sepolia' | 'base';
-export type WalletProvider = 'metamask' | 'walletconnect' | 'coinbase';
-export type NotificationType = 'success' | 'error' | 'warning' | 'info'; 
+export type NetworkType = "base-sepolia" | "base";
+export type WalletProvider = "metamask" | "walletconnect" | "coinbase";
+export type NotificationType = "success" | "error" | "warning" | "info";

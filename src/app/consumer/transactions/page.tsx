@@ -1,21 +1,31 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { 
-  ArrowLeft, 
-  Search, 
-  Download, 
+import {
+  ArrowLeft,
+  Search,
+  Download,
   Filter,
   ArrowUpRight,
   ArrowDownLeft,
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  Globe,
+  Loader2,
+  DollarSign,
+  TrendingUp,
 } from "lucide-react";
-import { formatCurrency, formatDate, getTransactionStatusColor } from "~/lib/utils";
+import { formatCurrency, formatDate } from "~/lib/utils";
 import type { Transaction } from "~/types";
 import Link from "next/link";
 
@@ -31,10 +41,10 @@ const mockTransactions: Transaction[] = [
     description: "Data sale: Netflix + Spotify data",
     metadata: {
       dataBrokerId: "broker-001",
-      dataSourcesRequested: ["netflix", "spotify"]
+      dataSourcesRequested: ["netflix", "spotify"],
     },
     createdAt: "2024-01-20T14:00:00Z",
-    completedAt: "2024-01-20T14:02:00Z"
+    completedAt: "2024-01-20T14:02:00Z",
   },
   {
     id: "txn-002",
@@ -46,10 +56,10 @@ const mockTransactions: Transaction[] = [
     status: "completed",
     description: "Withdrawal to external wallet",
     metadata: {
-      withdrawalMethod: "wallet"
+      withdrawalMethod: "wallet",
     },
     createdAt: "2024-01-19T16:30:00Z",
-    completedAt: "2024-01-19T16:35:00Z"
+    completedAt: "2024-01-19T16:35:00Z",
   },
   {
     id: "txn-003",
@@ -62,10 +72,10 @@ const mockTransactions: Transaction[] = [
     description: "Data sale: Instagram data",
     metadata: {
       dataBrokerId: "broker-002",
-      dataSourcesRequested: ["instagram"]
+      dataSourcesRequested: ["instagram"],
     },
     createdAt: "2024-01-19T10:45:00Z",
-    completedAt: "2024-01-19T10:47:00Z"
+    completedAt: "2024-01-19T10:47:00Z",
   },
   {
     id: "txn-004",
@@ -77,9 +87,9 @@ const mockTransactions: Transaction[] = [
     description: "Withdrawal to bank account",
     metadata: {
       withdrawalMethod: "bank",
-      bankAccountId: "bank-001"
+      bankAccountId: "bank-001",
     },
-    createdAt: "2024-01-21T09:15:00Z"
+    createdAt: "2024-01-21T09:15:00Z",
   },
   {
     id: "txn-005",
@@ -92,10 +102,10 @@ const mockTransactions: Transaction[] = [
     description: "Data sale: Netflix + Instagram + Facebook data",
     metadata: {
       dataBrokerId: "broker-003",
-      dataSourcesRequested: ["netflix", "instagram", "facebook"]
+      dataSourcesRequested: ["netflix", "instagram", "facebook"],
     },
     createdAt: "2024-01-18T13:20:00Z",
-    completedAt: "2024-01-18T13:22:00Z"
+    completedAt: "2024-01-18T13:22:00Z",
   },
   {
     id: "txn-006",
@@ -108,26 +118,32 @@ const mockTransactions: Transaction[] = [
     description: "Data sale: Spotify + Apple Music data",
     metadata: {
       dataBrokerId: "broker-001",
-      dataSourcesRequested: ["spotify", "apple-music"]
+      dataSourcesRequested: ["spotify", "apple-music"],
     },
     createdAt: "2024-01-17T11:30:00Z",
-    completedAt: "2024-01-17T11:32:00Z"
-  }
+    completedAt: "2024-01-17T11:32:00Z",
+  },
 ];
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<
+    Transaction[]
+  >([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "data_sale" | "withdrawal">("all");
-  const [filterStatus, setFilterStatus] = useState<"all" | "completed" | "pending" | "failed">("all");
+  const [filterType, setFilterType] = useState<
+    "all" | "data_sale" | "withdrawal"
+  >("all");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "completed" | "pending" | "failed"
+  >("all");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Mock data loading
     const loadTransactions = async () => {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 800));
       setTransactions(mockTransactions);
       setFilteredTransactions(mockTransactions);
       setIsLoading(false);
@@ -138,22 +154,20 @@ export default function TransactionsPage() {
   useEffect(() => {
     let filtered = transactions;
 
-    // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(tx => 
-        tx.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tx.id.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (tx) =>
+          tx.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          tx.id.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
-    // Filter by type
     if (filterType !== "all") {
-      filtered = filtered.filter(tx => tx.type === filterType);
+      filtered = filtered.filter((tx) => tx.type === filterType);
     }
 
-    // Filter by status
     if (filterStatus !== "all") {
-      filtered = filtered.filter(tx => tx.status === filterStatus);
+      filtered = filtered.filter((tx) => tx.status === filterStatus);
     }
 
     setFilteredTransactions(filtered);
@@ -161,28 +175,35 @@ export default function TransactionsPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'pending': return <Clock className="w-4 h-4 text-yellow-500" />;
-      case 'failed': return <XCircle className="w-4 h-4 text-red-500" />;
-      default: return <Clock className="w-4 h-4 text-gray-500" />;
+      case "completed":
+        return <CheckCircle className="text-success h-4 w-4" />;
+      case "pending":
+        return <Clock className="text-warning h-4 w-4" />;
+      case "failed":
+        return <XCircle className="text-destructive h-4 w-4" />;
+      default:
+        return <Clock className="text-muted-foreground h-4 w-4" />;
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'data_sale': return <ArrowDownLeft className="w-4 h-4 text-green-500" />;
-      case 'withdrawal': return <ArrowUpRight className="w-4 h-4 text-blue-500" />;
-      default: return <ArrowUpRight className="w-4 h-4 text-gray-500" />;
+      case "data_sale":
+        return <ArrowDownLeft className="text-success h-5 w-5" />;
+      case "withdrawal":
+        return <ArrowUpRight className="text-info h-5 w-5" />;
+      default:
+        return <ArrowUpRight className="text-muted-foreground h-5 w-5" />;
     }
   };
 
   const calculateTotals = () => {
     const earnings = filteredTransactions
-      .filter(tx => tx.type === 'data_sale' && tx.status === 'completed')
+      .filter((tx) => tx.type === "data_sale" && tx.status === "completed")
       .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
-    
+
     const withdrawals = filteredTransactions
-      .filter(tx => tx.type === 'withdrawal' && tx.status === 'completed')
+      .filter((tx) => tx.type === "withdrawal" && tx.status === "completed")
       .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
 
     return { earnings, withdrawals };
@@ -192,184 +213,247 @@ export default function TransactionsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading transactions...</div>
+      <div className="bg-background flex min-h-screen items-center justify-center">
+        <div className="flex items-center space-x-3">
+          <Loader2 className="text-primary h-8 w-8 animate-spin" />
+          <p className="text-muted-foreground text-lg">
+            Loading transactions...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
-              <Link href="/consumer/dashboard">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-4xl font-bold text-white">Transaction History</h1>
-              <p className="text-gray-300">Track all your earnings and withdrawals</p>
+    <div className="bg-surface min-h-screen">
+      <header className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 border-b backdrop-blur">
+        <div className="container">
+          <div className="flex h-16 items-center justify-between">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
+                <Globe className="text-primary-foreground h-5 w-5" />
+              </div>
+              <h1 className="text-foreground text-xl font-bold">DataMarket</h1>
+            </Link>
+            <div className="flex items-center space-x-4">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/consumer/dashboard">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Dashboard
+                </Link>
+              </Button>
+              <Button size="sm">
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
             </div>
           </div>
-          <Button className="bg-gradient-to-r from-green-500 to-teal-600">
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
-          </Button>
         </div>
+      </header>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Total Earnings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-400">
-                {formatCurrency(earnings, 'USDC')}
-              </div>
-              <p className="text-xs text-gray-400">From data sales</p>
-            </CardContent>
-          </Card>
+      <main className="section-padding">
+        <div className="container">
+          <div className="mb-12">
+            <h1 className="text-foreground mb-2 text-4xl font-bold">
+              Transaction History
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Track all your earnings and withdrawals.
+            </p>
+          </div>
 
-          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Total Withdrawals</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-400">
-                {formatCurrency(withdrawals, 'USDC')}
-              </div>
-              <p className="text-xs text-gray-400">Successfully withdrawn</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-300">Net Balance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">
-                {formatCurrency(earnings - withdrawals, 'USDC')}
-              </div>
-              <p className="text-xs text-gray-400">Available balance</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters */}
-        <Card className="bg-white/10 border-white/20 backdrop-blur-sm mb-8">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Filter className="w-5 h-5 mr-2" />
-              Filters
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm text-gray-300 mb-2 block">Search</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search transactions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-white/5 border-white/20 text-white placeholder-gray-400"
-                  />
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-muted-foreground text-sm font-medium">
+                  Total Earnings
+                </CardTitle>
+                <DollarSign className="text-muted-foreground h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-success text-2xl font-bold">
+                  {formatCurrency(earnings, "USDC")}
                 </div>
-              </div>
-              
-              <div>
-                <label className="text-sm text-gray-300 mb-2 block">Type</label>
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value as any)}
-                  className="w-full p-2 rounded-md bg-white/5 border border-white/20 text-white"
-                >
-                  <option value="all">All Types</option>
-                  <option value="data_sale">Data Sales</option>
-                  <option value="withdrawal">Withdrawals</option>
-                </select>
-              </div>
+                <p className="text-muted-foreground text-xs">
+                  From{" "}
+                  {
+                    filteredTransactions.filter((tx) => tx.type === "data_sale")
+                      .length
+                  }{" "}
+                  data sales
+                </p>
+              </CardContent>
+            </Card>
 
-              <div>
-                <label className="text-sm text-gray-300 mb-2 block">Status</label>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as any)}
-                  className="w-full p-2 rounded-md bg-white/5 border border-white/20 text-white"
-                >
-                  <option value="all">All Status</option>
-                  <option value="completed">Completed</option>
-                  <option value="pending">Pending</option>
-                  <option value="failed">Failed</option>
-                </select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Transactions List */}
-        <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-white">
-              Transactions ({filteredTransactions.length})
-            </CardTitle>
-            <CardDescription className="text-gray-300">
-              All your transaction activity
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {filteredTransactions.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  No transactions found matching your filters.
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-muted-foreground text-sm font-medium">
+                  Total Withdrawals
+                </CardTitle>
+                <TrendingUp className="text-muted-foreground h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-info text-2xl font-bold">
+                  {formatCurrency(withdrawals, "USDC")}
                 </div>
-              ) : (
-                filteredTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        {getTypeIcon(transaction.type)}
-                        {getStatusIcon(transaction.status)}
-                      </div>
-                      <div>
-                        <div className="text-white font-medium">{transaction.description}</div>
-                        <div className="text-sm text-gray-400">
-                          {transaction.id} • {formatDate(transaction.createdAt)}
-                        </div>
-                        {transaction.metadata?.dataSourcesRequested && (
-                          <div className="text-xs text-blue-400 mt-1">
-                            Sources: {transaction.metadata.dataSourcesRequested.join(", ")}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`font-bold text-lg ${
-                        transaction.type === 'data_sale' ? 'text-green-400' : 'text-blue-400'
-                      }`}>
-                        {transaction.type === 'data_sale' ? '+' : '-'}
-                        {formatCurrency(transaction.amount, transaction.currency)}
-                      </div>
-                      <div className={`text-xs px-2 py-1 rounded-full inline-block ${getTransactionStatusColor(transaction.status)}`}>
-                        {transaction.status}
-                      </div>
-                    </div>
+                <p className="text-muted-foreground text-xs">
+                  {
+                    filteredTransactions.filter(
+                      (tx) => tx.type === "withdrawal",
+                    ).length
+                  }{" "}
+                  successful withdrawals
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-muted-foreground text-sm font-medium">
+                  Net Balance Change
+                </CardTitle>
+                <DollarSign className="text-muted-foreground h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(earnings - withdrawals, "USDC")}
+                </div>
+                <p className="text-muted-foreground text-xs">
+                  For filtered period
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Filter className="text-primary mr-3 h-5 w-5" />
+                Filters & Search
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    Search
+                  </label>
+                  <div className="relative">
+                    <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+                    <Input
+                      placeholder="Search description or ID..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Type</label>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value as any)}
+                    className="bg-secondary border-border w-full rounded-md border p-2"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="data_sale">Data Sales</option>
+                    <option value="withdrawal">Withdrawals</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    Status
+                  </label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value as any)}
+                    className="bg-secondary border-border w-full rounded-md border p-2"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                  </select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Transactions ({filteredTransactions.length})
+              </CardTitle>
+              <CardDescription>
+                Your complete transaction history is listed below.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {filteredTransactions.length === 0 ? (
+                  <div className="text-muted-foreground py-12 text-center">
+                    <p>No transactions found matching your filters.</p>
+                  </div>
+                ) : (
+                  filteredTransactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="bg-secondary flex items-center justify-between rounded-lg p-4"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="bg-background rounded-full p-3">
+                          {getTypeIcon(transaction.type)}
+                        </div>
+                        <div>
+                          <div className="font-medium">
+                            {transaction.description}
+                          </div>
+                          <div className="text-muted-foreground text-sm">
+                            {formatDate(transaction.createdAt)}
+                          </div>
+                          {transaction.metadata?.dataSourcesRequested && (
+                            <div className="text-primary mt-1 text-xs">
+                              Sources:{" "}
+                              {transaction.metadata.dataSourcesRequested.join(
+                                ", ",
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div
+                          className={`text-lg font-bold ${
+                            transaction.type === "data_sale"
+                              ? "text-success"
+                              : "text-info"
+                          }`}
+                        >
+                          {transaction.type === "data_sale" ? "+" : "-"}
+                          {formatCurrency(
+                            transaction.amount,
+                            transaction.currency,
+                          )}
+                        </div>
+                        <div
+                          className={`mt-1 flex items-center justify-end text-xs`}
+                        >
+                          {getStatusIcon(transaction.status)}
+                          <span className="ml-1.5 capitalize">
+                            {transaction.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     </div>
   );
-} 
+}
